@@ -1,4 +1,3 @@
-'use server';
 import 'server-only';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
@@ -72,39 +71,44 @@ export function makeSendInvitation(deps: InvitationDeps) {
   };
 }
 
-// --- Default wired action used by Next.js ---
-export const sendInvitation = makeSendInvitation({
-  requireAdmin: () => requireRole('admin'),
-  db: {
-    async insertInvitation(row) {
-      const sb = createSupabaseAdminClient();
-      const { data, error } = await sb
-        .from('invitations')
-        .insert(row)
-        .select('id')
-        .single();
-      if (error || !data) throw new Error(`insertInvitation failed: ${error?.message}`);
-      return data as { id: string };
+// --- Default wired actions used by Next.js (each has inline 'use server') ---
+export async function sendInvitation(rawInput: z.input<typeof sendInvitationInput>): Promise<{ id: string }> {
+  'use server';
+  const action = makeSendInvitation({
+    requireAdmin: () => requireRole('admin'),
+    db: {
+      async insertInvitation(row) {
+        const sb = createSupabaseAdminClient();
+        const { data, error } = await sb
+          .from('invitations')
+          .insert(row)
+          .select('id')
+          .single();
+        if (error || !data) throw new Error(`insertInvitation failed: ${error?.message}`);
+        return data as { id: string };
+      },
+      async writeAudit({ actorId, action, targetType, targetId, metadata }) {
+        const sb = createSupabaseAdminClient();
+        const { error } = await sb.rpc('write_audit', {
+          p_actor: actorId,
+          p_action: action,
+          p_target_type: targetType,
+          p_target_id: targetId,
+          p_metadata: metadata,
+        });
+        if (error) throw new Error(`writeAudit failed: ${error.message}`);
+      },
     },
-    async writeAudit({ actorId, action, targetType, targetId, metadata }) {
-      const sb = createSupabaseAdminClient();
-      const { error } = await sb.rpc('write_audit', {
-        p_actor: actorId,
-        p_action: action,
-        p_target_type: targetType,
-        p_target_id: targetId,
-        p_metadata: metadata,
-      });
-      if (error) throw new Error(`writeAudit failed: ${error.message}`);
-    },
-  },
-  mailer: defaultMailer(),
-  tokens: { generate: generateInvitationToken, hash: hashToken },
-  originUrl: process.env.APP_ORIGIN ?? 'http://localhost:3000',
-});
+    mailer: defaultMailer(),
+    tokens: { generate: generateInvitationToken, hash: hashToken },
+    originUrl: process.env.APP_ORIGIN ?? 'http://localhost:3000',
+  });
+  return action(rawInput);
+}
 
-// --- listPending + revoke actions (small, no separate factory needed for tests) ---
+// --- listPending + revoke actions ---
 export async function listPendingInvitations() {
+  'use server';
   await requireRole('admin');
   const sb = createSupabaseAdminClient();
   const { data, error } = await sb
@@ -117,6 +121,7 @@ export async function listPendingInvitations() {
 }
 
 export async function revokeInvitation(rawInput: z.input<typeof revokeInvitationInput>) {
+  'use server';
   const session = await requireRole('admin');
   const parsed = revokeInvitationInput.safeParse(rawInput);
   if (!parsed.success) throw new ValidationError(parsed.error.flatten());
