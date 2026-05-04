@@ -570,8 +570,8 @@ No audit-log rows. No fake share/open events. No avatars.
 │   ├── config.toml
 │   ├── migrations/
 │   │   ├── 0001_init.sql            # tables, indexes
-│   │   ├── 0002_rls.sql             # all RLS policies
-│   │   └── 0003_functions.sql       # auth.role_of, audit triggers
+│   │   ├── 0002_functions.sql       # auth.role_of, write_audit (must come before RLS)
+│   │   └── 0003_rls.sql             # all RLS policies
 │   └── seed.sql
 ├── scripts/
 │   ├── seed.ts                      # creates auth users + profiles
