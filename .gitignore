@@ -1,0 +1,29 @@
+# Local Claude Code state
+.claude/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+dist/
+build/
+
+# Env files
+.env
+.env.local
+.env.*.local
+
+# Test artifacts
+coverage/
+playwright-report/
+test-results/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Supabase local
+supabase/.branches/
+supabase/.temp/
