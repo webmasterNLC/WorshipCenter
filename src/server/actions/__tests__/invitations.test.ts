@@ -12,17 +12,17 @@ const adminSession = {
 };
 
 function makeFakes() {
-  const insertedRows: any[] = [];
-  const sentMails: any[] = [];
+  const insertedRows: Record<string, unknown>[] = [];
+  const sentMails: Record<string, unknown>[] = [];
 
   const db = {
-    insertInvitation: vi.fn(async (row: any) => {
+    insertInvitation: vi.fn(async (row: Record<string, unknown>) => {
       insertedRows.push(row);
       return { id: 'inv-1', ...row };
     }),
     writeAudit: vi.fn(async () => {}),
   };
-  const mailer = { send: vi.fn(async (msg: any) => { sentMails.push(msg); return { messageId: '<id>' }; }) };
+  const mailer = { send: vi.fn(async (msg: Record<string, unknown>) => { sentMails.push(msg); return { messageId: '<id>' }; }) };
   const tokens = {
     generate: vi.fn(() => 'RAWTOKEN'),
     hash: vi.fn(async (raw: string) => `hash(${raw})`),

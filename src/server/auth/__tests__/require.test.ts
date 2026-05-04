@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { UnauthorizedError, ForbiddenError } from '../errors';
 
 // We're testing the pure logic of requireRole given a profile loader.

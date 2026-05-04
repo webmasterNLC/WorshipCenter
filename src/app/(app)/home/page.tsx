@@ -9,7 +9,7 @@ export default async function HomePage() {
     <div className="grid gap-4">
       <h1 className="text-2xl font-semibold">Welcome, {session.profile.display_name}.</h1>
       <p className="text-(--color-muted-fg)">
-        You're signed in as a <span className="font-medium">{role}</span>.
+        You&apos;re signed in as a <span className="font-medium">{role}</span>.
       </p>
 
       <section className="grid gap-2 rounded-2xl border border-(--color-border) p-4">

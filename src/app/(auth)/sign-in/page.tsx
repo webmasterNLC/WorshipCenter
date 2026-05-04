@@ -26,7 +26,7 @@ export default async function SignInPage({
     <>
       <h1 className="mb-1 text-xl font-semibold">Sign in</h1>
       <p className="mb-6 text-sm text-(--color-muted-fg)">
-        We'll email you a magic link.
+        We&apos;ll email you a magic link.
       </p>
 
       {invite === 'invalid' && (
