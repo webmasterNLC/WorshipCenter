@@ -71,11 +71,21 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL('/sign-in?invite=error', req.url));
   }
 
-  // Mark invitation accepted.
-  await sb
+  // Mark invitation accepted — atomic single-use claim. If another concurrent
+  // request already accepted this invitation, the conditional UPDATE returns
+  // zero rows and we treat it as a single-use violation (410 Gone).
+  const { data: claimed, error: claimError } = await sb
     .from('invitations')
     .update({ accepted_at: new Date().toISOString() })
-    .eq('id', invitation.id);
+    .eq('id', invitation.id)
+    .is('accepted_at', null)
+    .select('id');
+  if (claimError) {
+    return NextResponse.redirect(new URL('/sign-in?invite=error', req.url));
+  }
+  if (!claimed || claimed.length === 0) {
+    return NextResponse.redirect(new URL('/sign-in?invite=already_used', req.url));
+  }
 
   // Generate a magic-link sign-in. The user is redirected to /onboard after
   // the magic link's callback completes. We use Supabase Auth's generateLink

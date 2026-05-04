@@ -34,14 +34,18 @@ export async function adminSetUserRole(rawInput: z.input<typeof adminSetUserRole
     throw new ValidationError({ form: ['Cannot demote yourself.'] });
   }
 
-  const sb = createSupabaseAdminClient();
-  const { error } = await sb
+  // Use the request-scoped server client for the role mutation so RLS still
+  // enforces "admin updates roles" as the second wall — defense in depth.
+  // The admin client is reserved for the audit RPC, which is service-role only.
+  const sbServer = await createSupabaseServerClient();
+  const { error } = await sbServer
     .from('profiles')
     .update({ role: parsed.data.role })
     .eq('id', parsed.data.user_id);
   if (error) throw new Error(error.message);
 
-  await sb.rpc('write_audit', {
+  const sbAdmin = createSupabaseAdminClient();
+  await sbAdmin.rpc('write_audit', {
     p_actor: session.profile.id,
     p_action: 'profile.role_change',
     p_target_type: 'profile',

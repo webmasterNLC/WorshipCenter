@@ -6,7 +6,7 @@ Worship songs, chords, and setlists for NLC Burgdorf.
 
 ## Stack
 
-- Next.js 15 (App Router) with React Server Components
+- Next.js 16 (App Router) with React Server Components
 - TypeScript (strict, `noUncheckedIndexedAccess`)
 - Tailwind v4 (light/dark themes)
 - Supabase (Postgres, Auth, Row-Level Security)
@@ -16,7 +16,7 @@ Worship songs, chords, and setlists for NLC Burgdorf.
 
 ## Prerequisites
 
-- Node 20+
+- Node 22 (`.nvmrc` is set; run `nvm use`)
 - `pnpm` 9+
 - Docker (for the local Supabase stack)
 - Supabase CLI (`pnpm exec supabase --version`)

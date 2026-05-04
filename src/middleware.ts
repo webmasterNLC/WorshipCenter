@@ -3,19 +3,22 @@ import { createServerClient } from '@supabase/ssr';
 
 export async function middleware(req: NextRequest) {
   // 1) Origin/Host equality check on mutating methods (CSRF defense-in-depth).
+  // Modern browsers always send Origin on cross-origin and same-origin POSTs.
+  // Missing Origin on a state-changing method = non-browser client / suspect; reject.
   const method = req.method.toUpperCase();
   if (method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE') {
     const origin = req.headers.get('origin');
     const host = req.headers.get('host');
-    if (origin) {
-      try {
-        const o = new URL(origin);
-        if (o.host !== host) {
-          return new NextResponse('Forbidden', { status: 403 });
-        }
-      } catch {
+    if (!origin) {
+      return new NextResponse('Forbidden', { status: 403 });
+    }
+    try {
+      const o = new URL(origin);
+      if (o.host !== host) {
         return new NextResponse('Forbidden', { status: 403 });
       }
+    } catch {
+      return new NextResponse('Forbidden', { status: 403 });
     }
   }
 
@@ -50,7 +53,7 @@ export async function middleware(req: NextRequest) {
       "frame-ancestors 'none'",
     ].join('; '),
   );
-  res.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  res.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
   res.headers.set('Referrer-Policy', 'same-origin');
   res.headers.set('X-Content-Type-Options', 'nosniff');
   res.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
