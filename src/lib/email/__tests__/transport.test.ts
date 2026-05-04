@@ -24,7 +24,7 @@ describe('makeMailer', () => {
       text: 'hi',
     });
     expect(sendMail).toHaveBeenCalledOnce();
-    const arg = sendMail.mock.calls[0][0];
+    const arg = sendMail.mock.calls[0]![0];
     expect(arg.from).toBe('NLC <noreply@example.org>');
     expect(arg.to).toBe('a@example.org');
     expect(arg.subject).toBe('Hello');
