@@ -14,6 +14,9 @@ export default defineConfig({
     coverage: { provider: 'v8', reporter: ['text', 'html'] },
   },
   resolve: {
-    alias: { '@': path.resolve(__dirname, './src') },
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+      'server-only': path.resolve(__dirname, './tests/__mocks__/server-only.ts'),
+    },
   },
 });
