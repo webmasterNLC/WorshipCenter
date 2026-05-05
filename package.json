@@ -17,6 +17,8 @@
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "db:seed": "tsx scripts/seed.ts",
+    "db:seed-test": "tsx scripts/seed-test-users.ts",
+    "db:seed-test:hosted": "tsx scripts/seed-test-users.ts --hosted",
     "format": "prettier --write ."
   },
   "dependencies": {
