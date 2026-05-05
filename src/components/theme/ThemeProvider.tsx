@@ -9,12 +9,15 @@ const ThemeCtx = createContext<{ theme: Theme; setTheme: (t: Theme) => void }>({
   setTheme: () => {},
 });
 
+function readStoredTheme(): Theme {
+  if (typeof window === 'undefined') return 'light';
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored === 'light' || stored === 'dark' || stored === 'stage-dark') return stored;
+  return 'light';
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('light');
-  useEffect(() => {
-    const stored = (typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null) as Theme | null;
-    if (stored === 'light' || stored === 'dark' || stored === 'stage-dark') setTheme(stored);
-  }, []);
+  const [theme, setTheme] = useState<Theme>(readStoredTheme);
   useEffect(() => {
     document.documentElement.classList.remove('dark', 'stage-dark');
     if (theme === 'dark') document.documentElement.classList.add('dark');

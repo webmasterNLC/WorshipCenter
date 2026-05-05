@@ -25,22 +25,23 @@ interface SongViewerProps {
   song: Song;
 }
 
+function readStoredFontStep(): number {
+  if (typeof window === 'undefined') return 1;
+  const stored = localStorage.getItem(FONT_STEP_KEY);
+  if (stored !== null) {
+    const n = parseInt(stored, 10);
+    if (n >= 0 && n < FONT_STEPS.length) return n;
+  }
+  return 1;
+}
+
 export function SongViewer({ song }: SongViewerProps) {
   const [semitones, setSemitones] = useState(0);
-  const [fontStep, setFontStep] = useState(1);
+  const [fontStep, setFontStep] = useState(readStoredFontStep);
   const [autoScroll, setAutoScroll] = useState(false);
   const { theme, setTheme } = useTheme();
   const articleRef = useRef<HTMLElement>(null);
   const rafRef = useRef<number | null>(null);
-
-  // Restore font step from localStorage
-  useEffect(() => {
-    const stored = typeof window !== 'undefined' ? localStorage.getItem(FONT_STEP_KEY) : null;
-    if (stored !== null) {
-      const n = parseInt(stored, 10);
-      if (n >= 0 && n < FONT_STEPS.length) setFontStep(n);
-    }
-  }, []);
 
   // Persist font step
   useEffect(() => {
