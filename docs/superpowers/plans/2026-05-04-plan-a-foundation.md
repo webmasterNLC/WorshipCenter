@@ -560,7 +560,7 @@ git commit -m "feat(db): add base tables for profiles, invitations, audit, rate-
 
 ---
 
-### Task 7: Migration 0002 — `auth.role_of()` helper + audit trigger
+### Task 7: Migration 0002 — `public.role_of()` helper + audit trigger
 
 **Files:**
 - Create: `supabase/migrations/0002_functions.sql`
@@ -574,13 +574,13 @@ Create `supabase/migrations/0002_functions.sql`:
 -- SECURITY DEFINER lets RLS policies on other tables read profiles.role
 -- without recursing through profiles' own policies. The function body is
 -- a trivial SELECT, no logic, no SQL injection surface.
-create or replace function auth.role_of(uid uuid) returns user_role
+create or replace function public.role_of(uid uuid) returns user_role
   language sql stable security definer
   set search_path = public
   as $$ select role from public.profiles where id = uid $$;
 
-revoke all on function auth.role_of(uuid) from public;
-grant execute on function auth.role_of(uuid) to authenticated, anon;
+revoke all on function public.role_of(uuid) from public;
+grant execute on function public.role_of(uuid) to authenticated, anon;
 
 -- Helper: write an audit row from a server action via the service role.
 -- Server actions call this with the actor uuid; it does not trust auth.uid().
@@ -629,7 +629,7 @@ pnpm exec supabase db remote commit --help >/dev/null  # noop, just sanity check
 
 ```bash
 git add supabase/migrations/0002_functions.sql
-git commit -m "feat(db): add auth.role_of helper and write_audit function"
+git commit -m "feat(db): add public.role_of helper and write_audit function"
 ```
 
 ---
@@ -650,12 +650,12 @@ alter table profiles enable row level security;
 
 create policy "profiles: read own + admin reads all" on profiles for select
   using (
-    id = auth.uid() or auth.role_of(auth.uid()) = 'admin'
+    id = auth.uid() or public.role_of(auth.uid()) = 'admin'
   );
 
 create policy "profiles: admin updates roles" on profiles for update
-  using (auth.role_of(auth.uid()) = 'admin')
-  with check (auth.role_of(auth.uid()) = 'admin');
+  using (public.role_of(auth.uid()) = 'admin')
+  with check (public.role_of(auth.uid()) = 'admin');
 
 create policy "profiles: self updates own profile (not role)" on profiles for update
   using (id = auth.uid())
@@ -671,14 +671,14 @@ create policy "profiles: no client inserts" on profiles for insert with check (f
 alter table invitations enable row level security;
 
 create policy "invitations: admin only" on invitations for all
-  using (auth.role_of(auth.uid()) = 'admin')
-  with check (auth.role_of(auth.uid()) = 'admin');
+  using (public.role_of(auth.uid()) = 'admin')
+  with check (public.role_of(auth.uid()) = 'admin');
 
 -- audit_log: admin reads, service-role writes
 alter table audit_log enable row level security;
 
 create policy "audit_log: admin reads" on audit_log for select
-  using (auth.role_of(auth.uid()) = 'admin');
+  using (public.role_of(auth.uid()) = 'admin');
 
 -- auth_attempts: service-role only (used by rate limit checks)
 alter table auth_attempts enable row level security;

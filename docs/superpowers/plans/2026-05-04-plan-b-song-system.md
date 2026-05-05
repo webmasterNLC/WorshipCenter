@@ -415,11 +415,11 @@ create trigger songs_updated_at
 alter table songs enable row level security;
 
 create policy "songs: any band member reads" on songs for select
-  using (auth.role_of(auth.uid()) in ('admin','leader','musician'));
+  using (public.role_of(auth.uid()) in ('admin','leader','musician'));
 
 create policy "songs: admin writes" on songs for all
-  using (auth.role_of(auth.uid()) = 'admin')
-  with check (auth.role_of(auth.uid()) = 'admin');
+  using (public.role_of(auth.uid()) = 'admin')
+  with check (public.role_of(auth.uid()) = 'admin');
 ```
 
 - [ ] **Step 2: Commit** — `feat(db): RLS for songs — band reads, admin writes`

@@ -357,18 +357,18 @@ Even if a handler is buggy, RLS makes unauthorized data access impossible.
 
 ```sql
 -- Helper: SECURITY DEFINER to avoid RLS recursion when policies query profiles.
-create function auth.role_of(uid uuid) returns user_role
+create function public.role_of(uid uuid) returns user_role
   language sql stable security definer
   as $$ select role from profiles where id = uid $$;
 
 -- profiles
 alter table profiles enable row level security;
 create policy "read own + admin reads all" on profiles for select using (
-  id = auth.uid() or auth.role_of(auth.uid()) = 'admin'
+  id = auth.uid() or public.role_of(auth.uid()) = 'admin'
 );
 create policy "admin updates roles" on profiles for update using (
-  auth.role_of(auth.uid()) = 'admin'
-) with check (auth.role_of(auth.uid()) = 'admin');
+  public.role_of(auth.uid()) = 'admin'
+) with check (public.role_of(auth.uid()) = 'admin');
 create policy "self updates own profile (not role)" on profiles for update using (
   id = auth.uid()
 ) with check (
@@ -378,25 +378,25 @@ create policy "self updates own profile (not role)" on profiles for update using
 -- songs
 alter table songs enable row level security;
 create policy "any band member reads songs" on songs for select using (
-  auth.role_of(auth.uid()) in ('admin','leader','musician')
+  public.role_of(auth.uid()) in ('admin','leader','musician')
 );
 create policy "admin writes songs" on songs for all using (
-  auth.role_of(auth.uid()) = 'admin'
-) with check (auth.role_of(auth.uid()) = 'admin');
+  public.role_of(auth.uid()) = 'admin'
+) with check (public.role_of(auth.uid()) = 'admin');
 
 -- playlists
 alter table playlists enable row level security;
 create policy "any band member reads playlists" on playlists for select using (
-  auth.role_of(auth.uid()) in ('admin','leader','musician')
+  public.role_of(auth.uid()) in ('admin','leader','musician')
 );
 create policy "leader|admin creates" on playlists for insert with check (
-  auth.role_of(auth.uid()) in ('leader','admin') and owner_id = auth.uid()
+  public.role_of(auth.uid()) in ('leader','admin') and owner_id = auth.uid()
 );
 create policy "owner|admin updates" on playlists for update using (
-  owner_id = auth.uid() or auth.role_of(auth.uid()) = 'admin'
+  owner_id = auth.uid() or public.role_of(auth.uid()) = 'admin'
 );
 create policy "owner|admin deletes" on playlists for delete using (
-  owner_id = auth.uid() or auth.role_of(auth.uid()) = 'admin'
+  owner_id = auth.uid() or public.role_of(auth.uid()) = 'admin'
 );
 
 -- playlist_items: gated through parent
@@ -408,20 +408,20 @@ create policy "write items if owner|admin" on playlist_items for all using (
   exists (
     select 1 from playlists p
     where p.id = playlist_id
-      and (p.owner_id = auth.uid() or auth.role_of(auth.uid()) = 'admin')
+      and (p.owner_id = auth.uid() or public.role_of(auth.uid()) = 'admin')
   )
 );
 
 -- invitations: admin only
 alter table invitations enable row level security;
 create policy "admin only" on invitations for all using (
-  auth.role_of(auth.uid()) = 'admin'
-) with check (auth.role_of(auth.uid()) = 'admin');
+  public.role_of(auth.uid()) = 'admin'
+) with check (public.role_of(auth.uid()) = 'admin');
 
 -- audit_log: admin reads; writes via service role from server actions
 alter table audit_log enable row level security;
 create policy "admin reads audit" on audit_log for select using (
-  auth.role_of(auth.uid()) = 'admin'
+  public.role_of(auth.uid()) = 'admin'
 );
 ```
 
@@ -570,7 +570,7 @@ No audit-log rows. No fake share/open events. No avatars.
 │   ├── config.toml
 │   ├── migrations/
 │   │   ├── 0001_init.sql            # tables, indexes
-│   │   ├── 0002_functions.sql       # auth.role_of, write_audit (must come before RLS)
+│   │   ├── 0002_functions.sql       # public.role_of, write_audit (must come before RLS)
 │   │   └── 0003_rls.sql             # all RLS policies
 │   └── seed.sql
 ├── scripts/
