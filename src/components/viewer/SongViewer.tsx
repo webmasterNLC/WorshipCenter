@@ -9,6 +9,17 @@ import type { Theme } from '@/components/theme/ThemeProvider';
 const FONT_STEPS = [16, 20, 24, 30, 40] as const;
 const FONT_STEP_KEY = 'songdrop-font-step';
 
+const LANG_LABEL: Record<string, string> = {
+  de: 'DE', en: 'EN', ta: 'TA',
+};
+
+interface Translation {
+  language: string;
+  title: string;
+  body_chordpro: string;
+  is_primary: boolean;
+}
+
 interface Song {
   id: string;
   title: string;
@@ -19,13 +30,15 @@ interface Song {
   body_chordpro: string;
   notes?: string | null;
   tags?: string[];
+  /** Optional — if present and length > 1, language switcher is shown. */
+  translations?: Translation[];
 }
 
 interface SongViewerProps {
   song: Song;
   /** Pre-applied semitone offset (e.g. from playlist item). Default 0. */
   initialSemitones?: number;
-  /** Optional navigation bar rendered above the sticky header (e.g. prev/next in performance mode). */
+  /** Optional navigation bar rendered above the sticky header. */
   navigationSlot?: React.ReactNode;
 }
 
@@ -47,6 +60,19 @@ export function SongViewer({ song, initialSemitones = 0, navigationSlot }: SongV
   const articleRef = useRef<HTMLElement>(null);
   const rafRef = useRef<number | null>(null);
 
+  // Translation tabs are visible only when there are 2+ translations.
+  const translations = song.translations ?? [];
+  const showLangSwitch = translations.length > 1;
+  const initialLang =
+    translations.find((t) => t.is_primary)?.language ?? song.language;
+  const [activeLang, setActiveLang] = useState<string>(initialLang);
+
+  const active =
+    translations.find((t) => t.language === activeLang) ?? null;
+  const effectiveTitle    = active?.title         ?? song.title;
+  const effectiveLanguage = active?.language      ?? song.language;
+  const effectiveBody     = active?.body_chordpro ?? song.body_chordpro;
+
   // Persist font step
   useEffect(() => {
     if (typeof window !== 'undefined') localStorage.setItem(FONT_STEP_KEY, String(fontStep));
@@ -59,10 +85,10 @@ export function SongViewer({ song, initialSemitones = 0, navigationSlot }: SongV
 
   const blocks = useMemo(() => {
     const transposed = semitones !== 0
-      ? transposeChordPro(song.body_chordpro, semitones, accidental)
-      : song.body_chordpro;
+      ? transposeChordPro(effectiveBody, semitones, accidental)
+      : effectiveBody;
     return renderToBlocks(transposed);
-  }, [song.body_chordpro, semitones, accidental]);
+  }, [effectiveBody, semitones, accidental]);
 
   const currentKey = useMemo(
     () => semitones !== 0 ? transposeKey(song.original_key, semitones, accidental) : song.original_key,
@@ -84,7 +110,6 @@ export function SongViewer({ song, initialSemitones = 0, navigationSlot }: SongV
     return () => { if (rafRef.current !== null) cancelAnimationFrame(rafRef.current); };
   }, [autoScroll, scrollSpeed]);
 
-  // Stop auto-scroll on click
   const handleArticleClick = useCallback(() => {
     if (autoScroll) setAutoScroll(false);
   }, [autoScroll]);
@@ -111,13 +136,17 @@ export function SongViewer({ song, initialSemitones = 0, navigationSlot }: SongV
       className="max-w-3xl mx-auto pb-24"
       onClick={handleArticleClick}
     >
-      {/* Navigation slot (e.g. performance mode prev/next) */}
       {navigationSlot}
 
       {/* Sticky header */}
       <header className="sticky top-0 z-10 bg-(--color-bg)/90 backdrop-blur border-b border-(--color-border) px-4 py-3 flex flex-wrap items-center gap-2">
         <div className="flex-1 min-w-0">
-          <h1 className="text-lg font-semibold truncate" lang={song.language}>{song.title}</h1>
+          <h1
+            className="font-display text-lg truncate"
+            lang={effectiveLanguage}
+          >
+            {effectiveTitle}
+          </h1>
           <div className="flex items-center gap-3 text-xs text-(--color-muted-fg)">
             <span className="font-mono font-bold text-(--color-accent)">{currentKey}</span>
             {song.bpm && <span>{song.bpm} BPM</span>}
@@ -125,7 +154,7 @@ export function SongViewer({ song, initialSemitones = 0, navigationSlot }: SongV
           </div>
         </div>
 
-        {/* Transpose controls */}
+        {/* Transpose */}
         <div className="flex items-center gap-1">
           <button
             aria-label="Transpose down"
@@ -156,7 +185,6 @@ export function SongViewer({ song, initialSemitones = 0, navigationSlot }: SongV
           >A+</button>
         </div>
 
-        {/* Theme toggle */}
         <button
           aria-label={`Switch theme (current: ${theme})`}
           className="size-8 rounded-full border border-(--color-border) flex items-center justify-center text-xs hover:bg-(--color-muted)"
@@ -165,14 +193,12 @@ export function SongViewer({ song, initialSemitones = 0, navigationSlot }: SongV
           {theme === 'stage-dark' ? '★' : theme === 'dark' ? '●' : '○'}
         </button>
 
-        {/* Auto-scroll */}
         <button
           aria-label={autoScroll ? 'Stop autoscroll' : 'Start autoscroll'}
           className={`size-8 rounded-full border flex items-center justify-center text-xs hover:bg-(--color-muted) ${autoScroll ? 'border-(--color-accent) text-(--color-accent)' : 'border-(--color-border)'}`}
           onClick={(e) => { e.stopPropagation(); setAutoScroll((v) => !v); }}
         >▼</button>
 
-        {/* Fullscreen */}
         <button
           aria-label="Toggle fullscreen"
           className="size-8 rounded-full border border-(--color-border) flex items-center justify-center text-xs hover:bg-(--color-muted)"
@@ -180,10 +206,41 @@ export function SongViewer({ song, initialSemitones = 0, navigationSlot }: SongV
         >⛶</button>
       </header>
 
+      {/* Language switcher (only shown when 2+ translations exist) */}
+      {showLangSwitch && (
+        <div
+          className="px-4 pt-3 flex flex-wrap items-center gap-1.5"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <span className="text-[0.65rem] uppercase tracking-[0.22em] text-(--color-muted-fg) mr-1">
+            Language
+          </span>
+          {translations.map((t) => {
+            const isActive = t.language === activeLang;
+            return (
+              <button
+                key={t.language}
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setActiveLang(t.language); }}
+                aria-pressed={isActive}
+                className={`rounded-full border px-3 py-1 text-xs uppercase tracking-[0.14em] transition-colors ${
+                  isActive
+                    ? 'border-(--color-accent) bg-(--color-accent) text-(--color-accent-fg)'
+                    : 'border-(--color-border) text-(--color-muted-fg) hover:border-(--color-accent)'
+                }`}
+              >
+                {t.is_primary && <span className="mr-1 text-(--color-accent-fg)">★</span>}
+                {LANG_LABEL[t.language] ?? t.language.toUpperCase()}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Song body */}
       <section className="px-4 pt-6" style={{ fontSize: `${fontSize}px` }}>
         {blocks.map((block, i) => (
-          <ChordLine key={i} block={block} language={song.language} />
+          <ChordLine key={i} block={block} language={effectiveLanguage} />
         ))}
       </section>
 

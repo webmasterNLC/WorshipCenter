@@ -1,34 +1,42 @@
 import Link from 'next/link';
 import { Home, Music, ListMusic, ShieldCheck, User } from 'lucide-react';
+import type { ComponentType } from 'react';
 import type { Session } from '@/server/auth/require';
+import { NavLink } from './NavLink';
+
+type NavIcon = ComponentType<{ className?: string; 'aria-hidden'?: boolean }>;
 
 export function SideRail({ session }: { session: Session }) {
-  const items: Array<{ href: string; label: string; icon: React.ElementType }> = [
+  const items: Array<{ href: string; label: string; icon: NavIcon }> = [
     { href: '/home', label: 'Home', icon: Home },
     { href: '/songs', label: 'Songs', icon: Music },
-    { href: '/playlists', label: 'Playlists', icon: ListMusic },
+    { href: '/playlists', label: 'Setlists', icon: ListMusic },
     ...(session.profile.role === 'admin'
       ? [{ href: '/admin/users', label: 'Admin', icon: ShieldCheck }]
       : []),
-    { href: '/me', label: 'Me', icon: User },
+    { href: '/me', label: 'Profile', icon: User },
   ];
 
   return (
-    <aside className="hidden border-r border-(--color-border) px-3 py-6 md:block">
-      <div className="px-3 pb-6 font-semibold tracking-tight">SongDrop</div>
-      <ul className="grid gap-1">
-        {items.map(({ href, label, icon: Icon }) => (
+    <aside className="hidden border-r border-(--color-border) px-3 py-6 md:flex md:flex-col md:gap-6">
+      <Link href="/home" className="flex items-baseline gap-1.5 px-3">
+        <span className="font-display-tight text-2xl">Song</span>
+        <span className="font-display-tight text-2xl italic text-(--color-accent)">drop</span>
+      </Link>
+      <ul className="grid gap-0.5">
+        {items.map(({ href, label, icon }) => (
           <li key={href}>
-            <Link
-              href={href}
-              className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-(--color-muted-fg) hover:bg-(--color-muted) hover:text-(--color-fg)"
-            >
-              <Icon className="size-4" aria-hidden />
-              <span>{label}</span>
-            </Link>
+            <NavLink href={href} label={label} icon={icon} />
           </li>
         ))}
       </ul>
+      <div className="mt-auto px-3 pt-6 border-t border-(--color-border)">
+        <p className="text-[0.65rem] uppercase tracking-[0.22em] text-(--color-muted-fg)">
+          Signed in
+        </p>
+        <p className="font-display text-sm mt-1 truncate">{session.profile.display_name}</p>
+        <p className="text-xs text-(--color-muted-fg) capitalize">{session.profile.role}</p>
+      </div>
     </aside>
   );
 }

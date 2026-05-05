@@ -1,8 +1,15 @@
-import { Inter, Noto_Sans, Noto_Sans_Tamil } from 'next/font/google';
+import { Inter, Noto_Sans, Noto_Sans_Tamil, Fraunces } from 'next/font/google';
 
 export const inter = Inter({
   subsets: ['latin', 'latin-ext'],
   variable: '--font-inter',
+  display: 'swap',
+});
+
+export const fraunces = Fraunces({
+  subsets: ['latin', 'latin-ext'],
+  axes: ['SOFT', 'WONK', 'opsz'],
+  variable: '--font-display',
   display: 'swap',
 });
 

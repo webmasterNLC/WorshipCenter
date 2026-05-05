@@ -29,7 +29,7 @@
     color: var(--color-fg);
   }
   body {
-    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     font-feature-settings: "ss01", "cv11";
   }
 
@@ -43,14 +43,42 @@
     --color-accent-fg: oklch(0% 0 0);
     --color-danger:    oklch(75% 0.22 25);
   }
-  body {
-    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  }
   [lang="ta"], .lang-ta {
     font-family: var(--font-noto-sans-tamil), var(--font-noto-sans), ui-sans-serif, sans-serif;
   }
   .lyric {
     font-family: var(--font-noto-sans), ui-sans-serif, sans-serif;
+  }
+
+  /* Display serif — for editorial headings and section numerals. */
+  .font-display {
+    font-family: var(--font-display), ui-serif, Georgia, serif;
+    font-variation-settings: "opsz" 60, "SOFT" 100, "WONK" 1;
+    letter-spacing: -0.015em;
+  }
+  .font-display-tight {
+    font-family: var(--font-display), ui-serif, Georgia, serif;
+    font-variation-settings: "opsz" 144, "SOFT" 100, "WONK" 1;
+    letter-spacing: -0.03em;
+  }
+  /* Italic serif accent numeral — used for stat counts and section numbers. */
+  .numeral {
+    font-family: var(--font-display), ui-serif, Georgia, serif;
+    font-style: italic;
+    font-variation-settings: "opsz" 96, "SOFT" 100, "WONK" 1, "wght" 380;
+    color: var(--color-accent);
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  /* Subtle hover lift for cards. */
+  .card-lift {
+    transition: transform 280ms cubic-bezier(.2,.8,.2,1),
+                box-shadow 280ms cubic-bezier(.2,.8,.2,1),
+                border-color 280ms;
+  }
+  .card-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 32px -22px oklch(20% 0.02 250 / 0.18);
   }
 }
 

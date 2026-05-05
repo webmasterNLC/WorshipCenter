@@ -1,20 +1,30 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ForbiddenError, ValidationError } from '@/server/auth/errors';
-import { makeCreateSong } from '../songs';
+import { makeCreateSong, type CreateSongDeps } from '../songs';
 
 const adminSession = {
   user: { id: 'admin-uid' },
   profile: { id: 'admin-uid', display_name: 'A', role: 'admin' as const, created_at: '' },
 };
 
+type InsertedSongRow = Parameters<CreateSongDeps['db']['insertSong']>[0];
+type InsertedTranslationRow = Parameters<CreateSongDeps['db']['insertTranslations']>[0][number];
+
 function makeFakes() {
-  const inserted: Array<Record<string, unknown>> = [];
+  const insertedSongs: InsertedSongRow[] = [];
+  const insertedTranslations: InsertedTranslationRow[] = [];
   const writeAudit = vi.fn(async () => {});
-  const db = {
-    insert: vi.fn(async (row: Record<string, unknown>) => { inserted.push(row); return { id: 's1', ...row }; }),
+  const db: CreateSongDeps['db'] = {
+    insertSong: vi.fn(async (row: InsertedSongRow) => {
+      insertedSongs.push(row);
+      return { id: 's1' };
+    }),
+    insertTranslations: vi.fn(async (rows: InsertedTranslationRow[]) => {
+      insertedTranslations.push(...rows);
+    }),
     writeAudit,
   };
-  return { db, inserted };
+  return { db, insertedSongs, insertedTranslations };
 }
 
 describe('createSong', () => {
@@ -22,31 +32,104 @@ describe('createSong', () => {
 
   it('throws Forbidden when caller is not admin', async () => {
     const { db } = makeFakes();
-    const action = makeCreateSong({ requireAdmin: async () => { throw new ForbiddenError(); }, db });
-    await expect(action({
-      title: 't', language: 'en', original_key: 'G', body_chordpro: '[G]hi',
-    })).rejects.toBeInstanceOf(ForbiddenError);
+    const action = makeCreateSong({
+      requireAdmin: async () => { throw new ForbiddenError(); },
+      db,
+    });
+    await expect(
+      action({
+        original_key: 'G',
+        translations: [
+          { language: 'en', title: 't', body_chordpro: '[G]hi', is_primary: true },
+        ],
+      }),
+    ).rejects.toBeInstanceOf(ForbiddenError);
   });
 
   it('throws Validation on bad key', async () => {
     const { db } = makeFakes();
     const action = makeCreateSong({ requireAdmin: async () => adminSession, db });
-    await expect(action({
-      title: 't', language: 'en', original_key: 'INVALID', body_chordpro: '[G]hi',
-    })).rejects.toBeInstanceOf(ValidationError);
+    await expect(
+      action({
+        original_key: 'INVALID',
+        translations: [
+          { language: 'en', title: 't', body_chordpro: '[G]hi', is_primary: true },
+        ],
+      }),
+    ).rejects.toBeInstanceOf(ValidationError);
   });
 
-  it('inserts song with created_by + writes audit', async () => {
-    const { db, inserted } = makeFakes();
+  it('throws Validation when no translation is primary', async () => {
+    const { db } = makeFakes();
+    const action = makeCreateSong({ requireAdmin: async () => adminSession, db });
+    await expect(
+      action({
+        original_key: 'G',
+        translations: [
+          { language: 'en', title: 't', body_chordpro: '[G]hi', is_primary: false },
+        ],
+      }),
+    ).rejects.toBeInstanceOf(ValidationError);
+  });
+
+  it('throws Validation when two translations claim primary', async () => {
+    const { db } = makeFakes();
+    const action = makeCreateSong({ requireAdmin: async () => adminSession, db });
+    await expect(
+      action({
+        original_key: 'G',
+        translations: [
+          { language: 'en', title: 't', body_chordpro: '[G]hi', is_primary: true },
+          { language: 'de', title: 'T', body_chordpro: '[G]hi', is_primary: true },
+        ],
+      }),
+    ).rejects.toBeInstanceOf(ValidationError);
+  });
+
+  it('throws Validation on duplicate language', async () => {
+    const { db } = makeFakes();
+    const action = makeCreateSong({ requireAdmin: async () => adminSession, db });
+    await expect(
+      action({
+        original_key: 'G',
+        translations: [
+          { language: 'en', title: 't', body_chordpro: '[G]hi', is_primary: true },
+          { language: 'en', title: 'u', body_chordpro: '[G]hi', is_primary: false },
+        ],
+      }),
+    ).rejects.toBeInstanceOf(ValidationError);
+  });
+
+  it('inserts song with primary fields cached + translations + audit', async () => {
+    const { db, insertedSongs, insertedTranslations } = makeFakes();
     const action = makeCreateSong({ requireAdmin: async () => adminSession, db });
     const result = await action({
-      title: 'Amazing Grace', language: 'en', original_key: 'G',
-      body_chordpro: '[G]Amazing', tags: ['hymn'],
+      original_key: 'G',
+      tags: ['hymn'],
+      translations: [
+        { language: 'en', title: 'Amazing Grace', body_chordpro: '[G]Amazing', is_primary: true },
+        { language: 'de', title: 'Erstaunliche Gnade', body_chordpro: '[G]Erstaunlich', is_primary: false },
+      ],
     });
     expect(result.id).toBe('s1');
-    expect(inserted[0]?.created_by).toBe('admin-uid');
-    expect(db.writeAudit).toHaveBeenCalledWith(expect.objectContaining({
-      action: 'song.create', actorId: 'admin-uid', targetId: 's1',
-    }));
+    // Songs row gets the primary translation as cache
+    expect(insertedSongs[0]).toMatchObject({
+      title: 'Amazing Grace',
+      language: 'en',
+      body_chordpro: '[G]Amazing',
+      original_key: 'G',
+      created_by: 'admin-uid',
+    });
+    // Both translations land in song_translations
+    expect(insertedTranslations).toHaveLength(2);
+    expect(insertedTranslations[0]).toMatchObject({ song_id: 's1', language: 'en', is_primary: true });
+    expect(insertedTranslations[1]).toMatchObject({ song_id: 's1', language: 'de', is_primary: false });
+    expect(db.writeAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'song.create',
+        actorId: 'admin-uid',
+        targetId: 's1',
+      }),
+    );
   });
 });

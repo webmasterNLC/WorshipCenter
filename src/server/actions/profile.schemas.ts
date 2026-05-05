@@ -11,3 +11,18 @@ export const adminSetUserRoleInput = z.object({
   role: userRole,
 });
 export type AdminSetUserRoleInput = z.infer<typeof adminSetUserRoleInput>;
+
+export const CAPABILITIES = [
+  'worship_lead', 'vocal', 'drums', 'bass', 'guitar', 'keys',
+  'sound', 'camera', 'projector',
+] as const;
+export type Capability = (typeof CAPABILITIES)[number];
+
+export const capability = z.enum(CAPABILITIES);
+
+export const toggleCapabilityInput = z.object({
+  user_id: z.string().uuid(),
+  capability,
+  enabled: z.boolean(),
+});
+export type ToggleCapabilityInput = z.infer<typeof toggleCapabilityInput>;
