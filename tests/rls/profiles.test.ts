@@ -3,26 +3,26 @@ import { makeUser, cleanup } from './helpers';
 
 let admin: Awaited<ReturnType<typeof makeUser>>;
 let leader: Awaited<ReturnType<typeof makeUser>>;
-let musician: Awaited<ReturnType<typeof makeUser>>;
+let viewer: Awaited<ReturnType<typeof makeUser>>;
 
 beforeAll(async () => {
   admin = await makeUser('admin');
   leader = await makeUser('leader');
-  musician = await makeUser('musician');
+  viewer = await makeUser('viewer');
 });
 
 afterAll(async () => {
-  await cleanup([admin.id, leader.id, musician.id]);
+  await cleanup([admin.id, leader.id, viewer.id]);
 });
 
 describe('profiles RLS', () => {
-  it('musician can read own profile', async () => {
-    const { data } = await musician.sb.from('profiles').select('id').eq('id', musician.id).single();
-    expect(data?.id).toBe(musician.id);
+  it('viewer can read own profile', async () => {
+    const { data } = await viewer.sb.from('profiles').select('id').eq('id', viewer.id).single();
+    expect(data?.id).toBe(viewer.id);
   });
 
-  it('musician cannot read other profiles', async () => {
-    const { data } = await musician.sb.from('profiles').select('id').eq('id', leader.id);
+  it('viewer cannot read other profiles', async () => {
+    const { data } = await viewer.sb.from('profiles').select('id').eq('id', leader.id);
     expect(data ?? []).toHaveLength(0);
   });
 
@@ -31,25 +31,25 @@ describe('profiles RLS', () => {
     const ids = (data ?? []).map((p) => p.id);
     expect(ids).toContain(admin.id);
     expect(ids).toContain(leader.id);
-    expect(ids).toContain(musician.id);
+    expect(ids).toContain(viewer.id);
   });
 
-  it('musician cannot self-promote to admin', async () => {
-    const { error } = await musician.sb.from('profiles')
+  it('viewer cannot self-promote to admin', async () => {
+    const { error } = await viewer.sb.from('profiles')
       .update({ role: 'admin' })
-      .eq('id', musician.id);
+      .eq('id', viewer.id);
     expect(error).not.toBeNull(); // RLS update with-check denies the new role.
   });
 
   it('admin can change another user role', async () => {
     const { error } = await admin.sb.from('profiles')
       .update({ role: 'leader' })
-      .eq('id', musician.id);
+      .eq('id', viewer.id);
     expect(error).toBeNull();
-    const { data } = await admin.sb.from('profiles').select('role').eq('id', musician.id).single();
+    const { data } = await admin.sb.from('profiles').select('role').eq('id', viewer.id).single();
     expect(data?.role).toBe('leader');
     // Restore for other tests
-    await admin.sb.from('profiles').update({ role: 'musician' }).eq('id', musician.id);
+    await admin.sb.from('profiles').update({ role: 'viewer' }).eq('id', viewer.id);
   });
 
   it('leader cannot read invitations', async () => {
@@ -66,14 +66,14 @@ describe('profiles RLS', () => {
 
   it('leader cannot insert invitations', async () => {
     const { error } = await leader.sb.from('invitations').insert({
-      email: 'x@x.test', role: 'musician', invited_by: leader.id,
+      email: 'x@x.test', role: 'viewer', invited_by: leader.id,
       token_hash: 'h', expires_at: new Date(Date.now() + 1e6).toISOString(),
     });
     expect(error).not.toBeNull();
   });
 
-  it('musician cannot read audit_log', async () => {
-    const { data, error } = await musician.sb.from('audit_log').select('id');
+  it('viewer cannot read audit_log', async () => {
+    const { data, error } = await viewer.sb.from('audit_log').select('id');
     expect(data ?? []).toHaveLength(0);
     expect(error).toBeNull();
   });

@@ -15,7 +15,7 @@ export interface InvitationDeps {
   requireAdmin: () => Promise<Session>;
   db: {
     insertInvitation(row: {
-      email: string; role: 'admin'|'leader'|'musician'; invited_by: string;
+      email: string; role: 'admin'|'leader'|'viewer'; invited_by: string;
       token_hash: string; expires_at: Date;
     }): Promise<{ id: string } & Record<string, unknown>>;
     writeAudit(input: {

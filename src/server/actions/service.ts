@@ -123,7 +123,7 @@ export async function unassignFromService(
 export async function getServiceAssignments(
   playlistId: string,
 ): Promise<RotaAssignment[]> {
-  await requireRole('admin', 'leader', 'musician');
+  await requireRole('admin', 'leader', 'viewer');
   const sb = await createSupabaseServerClient();
 
   const { data, error } = await sb
@@ -199,7 +199,7 @@ export interface MyDuty {
  * Returns soonest first.
  */
 export async function getMyUpcomingDuties(limit = 5): Promise<MyDuty[]> {
-  const session = await requireRole('admin', 'leader', 'musician');
+  const session = await requireRole('admin', 'leader', 'viewer');
   const sb = await createSupabaseServerClient();
   const today = new Date().toISOString().slice(0, 10);
 

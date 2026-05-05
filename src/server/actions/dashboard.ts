@@ -25,7 +25,7 @@ export interface DashboardStats {
 }
 
 export async function getDashboardStats(): Promise<DashboardStats> {
-  await requireRole('admin', 'leader', 'musician');
+  await requireRole('admin', 'leader', 'viewer');
   const sb = await createSupabaseServerClient();
 
   const today = new Date().toISOString().slice(0, 10);

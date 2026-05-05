@@ -8,7 +8,7 @@ export function admin(): SupabaseClient {
 }
 
 /** Create a new auth user with a given role and return a per-user supabase client (acts as that user). */
-export async function makeUser(role: 'admin'|'leader'|'musician'): Promise<{ id: string; sb: SupabaseClient }> {
+export async function makeUser(role: 'admin'|'leader'|'viewer'): Promise<{ id: string; sb: SupabaseClient }> {
   const a = admin();
   const email = `rls-${role}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@test.local`;
   const password = 'rls-test-password-12+chars!';

@@ -64,7 +64,7 @@ export default async function HomePage() {
       {/* Hero greeting */}
       <header className="grid gap-2 pt-2">
         <span className="text-xs uppercase tracking-[0.22em] text-(--color-muted-fg)">
-          {role === 'admin' ? 'Administrator' : role === 'leader' ? 'Worship leader' : 'Band member'}
+          {role === 'admin' ? 'Administrator' : role === 'leader' ? 'Worship leader' : 'Viewer'}
         </span>
         <h1 className="font-display-tight text-5xl md:text-6xl leading-[0.95]">
           Welcome,<br/>

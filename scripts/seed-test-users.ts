@@ -1,7 +1,7 @@
 // scripts/seed-test-users.ts
 //
 // Creates a realistic NLC Burgdorf band roster as test users:
-//   admin × 1, leader × 1, musicians × 5
+//   admin × 1, leader × 1, viewers × 5
 // Each gets a synthetic .test email (no real mail sent — email_confirm: true
 // skips Supabase's confirmation flow), a password, a profile with role, and
 // the matching capabilities for the service rota.
@@ -31,7 +31,7 @@ type Capability =
 interface TestUser {
   email: string;
   display_name: string;
-  role: 'admin' | 'leader' | 'musician';
+  role: 'admin' | 'leader' | 'viewer';
   capabilities: Capability[];
 }
 
@@ -40,11 +40,11 @@ const PASSWORD = 'TestUser-2026-songdrop!';
 const TEST_USERS: TestUser[] = [
   { email: 'maria@nlc-burgdorf.test',  display_name: 'Maria',  role: 'admin',    capabilities: ['worship_lead', 'vocal', 'keys']        },
   { email: 'lukas@nlc-burgdorf.test',  display_name: 'Lukas',  role: 'leader',   capabilities: ['worship_lead', 'vocal', 'guitar']      },
-  { email: 'anna@nlc-burgdorf.test',   display_name: 'Anna',   role: 'musician', capabilities: ['vocal', 'keys']                        },
-  { email: 'david@nlc-burgdorf.test',  display_name: 'David',  role: 'musician', capabilities: ['drums']                                },
-  { email: 'tobias@nlc-burgdorf.test', display_name: 'Tobias', role: 'musician', capabilities: ['bass', 'guitar']                       },
-  { email: 'pascal@nlc-burgdorf.test', display_name: 'Pascal', role: 'musician', capabilities: ['sound', 'camera']                      },
-  { email: 'joel@nlc-burgdorf.test',   display_name: 'Joel',   role: 'musician', capabilities: ['projector', 'camera']                  },
+  { email: 'anna@nlc-burgdorf.test',   display_name: 'Anna',   role: 'viewer', capabilities: ['vocal', 'keys']                        },
+  { email: 'david@nlc-burgdorf.test',  display_name: 'David',  role: 'viewer', capabilities: ['drums']                                },
+  { email: 'tobias@nlc-burgdorf.test', display_name: 'Tobias', role: 'viewer', capabilities: ['bass', 'guitar']                       },
+  { email: 'pascal@nlc-burgdorf.test', display_name: 'Pascal', role: 'viewer', capabilities: ['sound', 'camera']                      },
+  { email: 'joel@nlc-burgdorf.test',   display_name: 'Joel',   role: 'viewer', capabilities: ['projector', 'camera']                  },
 ];
 
 async function main() {

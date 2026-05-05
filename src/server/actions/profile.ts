@@ -15,7 +15,7 @@ import {
 } from './profile.schemas';
 
 export async function updateMyProfile(rawInput: z.input<typeof updateMyProfileInput>) {
-  const session = await requireRole('admin', 'leader', 'musician');
+  const session = await requireRole('admin', 'leader', 'viewer');
   const parsed = updateMyProfileInput.safeParse(rawInput);
   if (!parsed.success) throw new ValidationError(parsed.error.flatten());
 
@@ -99,7 +99,7 @@ export async function toggleCapability(rawInput: z.input<typeof toggleCapability
 export interface MemberWithCapabilities {
   id: string;
   display_name: string;
-  role: 'admin' | 'leader' | 'musician';
+  role: 'admin' | 'leader' | 'viewer';
   created_at: string;
   capabilities: Capability[];
 }
@@ -133,7 +133,7 @@ export async function listMembersForAdmin(): Promise<MemberWithCapabilities[]> {
   return (profiles ?? []).map((p) => ({
     id: p.id,
     display_name: p.display_name,
-    role: p.role as 'admin' | 'leader' | 'musician',
+    role: p.role as 'admin' | 'leader' | 'viewer',
     created_at: p.created_at,
     capabilities: capsByProfile.get(p.id) ?? [],
   }));

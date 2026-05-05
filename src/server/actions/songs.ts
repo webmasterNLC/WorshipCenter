@@ -230,7 +230,7 @@ export interface SongListItem {
 }
 
 export async function listSongs(): Promise<SongListItem[]> {
-  await requireRole('admin', 'leader', 'musician');
+  await requireRole('admin', 'leader', 'viewer');
   const sb = await createSupabaseServerClient();
   const { data, error } = await sb
     .from('songs')
@@ -273,7 +273,7 @@ export interface SongDetail {
 }
 
 export async function getSong(id: string): Promise<SongDetail | null> {
-  await requireRole('admin', 'leader', 'musician');
+  await requireRole('admin', 'leader', 'viewer');
   const sb = await createSupabaseServerClient();
   const { data, error } = await sb
     .from('songs')

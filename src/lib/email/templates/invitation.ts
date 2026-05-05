@@ -3,7 +3,7 @@ import 'server-only';
 export interface InvitationEmailInput {
   acceptUrl: string;
   inviterName: string;
-  role: 'admin' | 'leader' | 'musician';
+  role: 'admin' | 'leader' | 'viewer';
   expiresAt: Date;
 }
 

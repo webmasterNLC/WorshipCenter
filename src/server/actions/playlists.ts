@@ -201,7 +201,7 @@ export async function deletePlaylist(id: string) {
 // ---------------------------------------------------------------------------
 
 export async function listPlaylists(): Promise<PlaylistListItem[]> {
-  await requireRole('admin', 'leader', 'musician');
+  await requireRole('admin', 'leader', 'viewer');
   const sb = await createSupabaseServerClient();
   const { data, error } = await sb
     .from('playlists')
@@ -243,7 +243,7 @@ export async function listPlaylists(): Promise<PlaylistListItem[]> {
 // ---------------------------------------------------------------------------
 
 export async function getPlaylist(id: string): Promise<PlaylistDetail | null> {
-  await requireRole('admin', 'leader', 'musician');
+  await requireRole('admin', 'leader', 'viewer');
   const parsedId = playlistIdInput.safeParse({ id });
   if (!parsedId.success) throw new ValidationError(parsedId.error.flatten());
 
@@ -527,7 +527,7 @@ export async function sharePlaylist(rawInput: z.input<typeof sharePlaylistInput>
   const { data: profiles, error: profErr } = await sb
     .from('profiles')
     .select('id, display_name, role')
-    .in('role', ['admin', 'leader', 'musician']);
+    .in('role', ['admin', 'leader', 'viewer']);
   if (profErr) throw new Error(profErr.message);
 
   const recipients = (profiles ?? []).filter((p) => p.id !== session.profile.id);

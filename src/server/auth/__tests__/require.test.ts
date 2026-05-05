@@ -18,7 +18,7 @@ describe('makeRequireRole', () => {
     const requireRole = makeRequireRole({
       loadSession: async () => ({
         user: { id: 'u1' },
-        profile: { id: 'u1', display_name: 'M', role: 'musician' as const, created_at: '' },
+        profile: { id: 'u1', display_name: 'M', role: 'viewer' as const, created_at: '' },
       }),
     });
     await expect(requireRole('admin')).rejects.toBeInstanceOf(ForbiddenError);

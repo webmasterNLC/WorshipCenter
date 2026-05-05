@@ -16,7 +16,7 @@ async function changeRoleAction(formData: FormData) {
   'use server';
   await adminSetUserRole({
     user_id: String(formData.get('user_id') ?? ''),
-    role: String(formData.get('role') ?? '') as 'admin' | 'leader' | 'musician',
+    role: String(formData.get('role') ?? '') as 'admin' | 'leader' | 'viewer',
   });
 }
 
@@ -24,7 +24,7 @@ async function sendInviteAction(formData: FormData) {
   'use server';
   await sendInvitation({
     email: String(formData.get('email') ?? ''),
-    role: String(formData.get('role') ?? '') as 'admin' | 'leader' | 'musician',
+    role: String(formData.get('role') ?? '') as 'admin' | 'leader' | 'viewer',
   });
 }
 
@@ -99,12 +99,12 @@ export default async function AdminMembersPage() {
             <select
               name="role"
               required
-              defaultValue="musician"
+              defaultValue="viewer"
               className="rounded-lg border border-(--color-border) bg-(--color-bg) px-3 py-2.5 text-sm focus:border-(--color-accent) focus:outline-none"
             >
               <option value="admin">Admin</option>
               <option value="leader">Worship leader</option>
-              <option value="musician">Musician</option>
+              <option value="viewer">Viewer</option>
             </select>
           </label>
           <button
@@ -222,7 +222,7 @@ export default async function AdminMembersPage() {
                     >
                       <option value="admin">Admin</option>
                       <option value="leader">Leader</option>
-                      <option value="musician">Musician</option>
+                      <option value="viewer">Viewer</option>
                     </select>
                   </label>
                   <button

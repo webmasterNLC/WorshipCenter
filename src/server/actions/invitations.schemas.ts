@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const userRole = z.enum(['admin', 'leader', 'musician']);
+export const userRole = z.enum(['admin', 'leader', 'viewer']);
 export type UserRole = z.infer<typeof userRole>;
 
 export const sendInvitationInput = z.object({

@@ -4,7 +4,7 @@ import 'server-only';
 import { UnauthorizedError, ForbiddenError, NotFoundError } from './errors';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
-export type UserRole = 'admin' | 'leader' | 'musician';
+export type UserRole = 'admin' | 'leader' | 'viewer';
 
 export interface Profile {
   id: string;
@@ -59,7 +59,7 @@ export const loadSession = defaultLoader.loadSession.bind(defaultLoader);
  * OR are an admin. Throws ForbiddenError otherwise.
  */
 export async function requireOwnerOrAdmin(playlistId: string): Promise<Session> {
-  const session = await requireRole('admin', 'leader', 'musician');
+  const session = await requireRole('admin', 'leader', 'viewer');
   if (session.profile.role === 'admin') return session;
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase

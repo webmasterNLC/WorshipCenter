@@ -39,7 +39,7 @@ describe('sendInvitation', () => {
       requireAdmin: async () => { throw new ForbiddenError(); },
       db, mailer, tokens, originUrl: 'https://x.test',
     });
-    await expect(action({ email: 'x@y.org', role: 'musician' }))
+    await expect(action({ email: 'x@y.org', role: 'viewer' }))
       .rejects.toBeInstanceOf(ForbiddenError);
   });
 
@@ -49,7 +49,7 @@ describe('sendInvitation', () => {
       requireAdmin: async () => adminSession,
       db, mailer, tokens, originUrl: 'https://x.test',
     });
-    await expect(action({ email: 'not-an-email', role: 'musician' }))
+    await expect(action({ email: 'not-an-email', role: 'viewer' }))
       .rejects.toBeInstanceOf(ValidationError);
   });
 
