@@ -23,6 +23,10 @@ interface Song {
 
 interface SongViewerProps {
   song: Song;
+  /** Pre-applied semitone offset (e.g. from playlist item). Default 0. */
+  initialSemitones?: number;
+  /** Optional navigation bar rendered above the sticky header (e.g. prev/next in performance mode). */
+  navigationSlot?: React.ReactNode;
 }
 
 function readStoredFontStep(): number {
@@ -35,8 +39,8 @@ function readStoredFontStep(): number {
   return 1;
 }
 
-export function SongViewer({ song }: SongViewerProps) {
-  const [semitones, setSemitones] = useState(0);
+export function SongViewer({ song, initialSemitones = 0, navigationSlot }: SongViewerProps) {
+  const [semitones, setSemitones] = useState(initialSemitones);
   const [fontStep, setFontStep] = useState(readStoredFontStep);
   const [autoScroll, setAutoScroll] = useState(false);
   const { theme, setTheme } = useTheme();
@@ -107,6 +111,9 @@ export function SongViewer({ song }: SongViewerProps) {
       className="max-w-3xl mx-auto pb-24"
       onClick={handleArticleClick}
     >
+      {/* Navigation slot (e.g. performance mode prev/next) */}
+      {navigationSlot}
+
       {/* Sticky header */}
       <header className="sticky top-0 z-10 bg-(--color-bg)/90 backdrop-blur border-b border-(--color-border) px-4 py-3 flex flex-wrap items-center gap-2">
         <div className="flex-1 min-w-0">
