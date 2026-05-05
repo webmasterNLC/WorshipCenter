@@ -1,7 +1,7 @@
 // Pure logic for role-gating, with the Supabase-bound session loader injected.
 // The `requireRole` helper exported by default uses the real loader.
 import 'server-only';
-import { UnauthorizedError, ForbiddenError } from './errors';
+import { UnauthorizedError, ForbiddenError, NotFoundError } from './errors';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export type UserRole = 'admin' | 'leader' | 'musician';
@@ -53,3 +53,21 @@ const defaultLoader: SessionLoader = {
 
 export const requireRole = makeRequireRole(defaultLoader);
 export const loadSession = defaultLoader.loadSession.bind(defaultLoader);
+
+/**
+ * Requires the caller to be a band member, then verifies they own the playlist
+ * OR are an admin. Throws ForbiddenError otherwise.
+ */
+export async function requireOwnerOrAdmin(playlistId: string): Promise<Session> {
+  const session = await requireRole('admin', 'leader', 'musician');
+  if (session.profile.role === 'admin') return session;
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('playlists')
+    .select('owner_id')
+    .eq('id', playlistId)
+    .single();
+  if (error || !data) throw new NotFoundError('Playlist');
+  if (data.owner_id !== session.profile.id) throw new ForbiddenError();
+  return session;
+}

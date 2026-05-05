@@ -1,4 +1,5 @@
-import 'server-only';
+// NOTE: No 'server-only' — runAction is a pure catch wrapper that is also used
+// by client components to call server actions and handle typed errors.
 import { UnauthorizedError, ForbiddenError, ValidationError, NotFoundError } from '@/server/auth/errors';
 
 export type ActionResult<T> =
