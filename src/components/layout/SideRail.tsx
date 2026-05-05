@@ -24,9 +24,12 @@ export function SideRail({ session }: { session: Session }) {
         <span className="font-display-tight text-2xl italic text-(--color-accent)">drop</span>
       </Link>
       <ul className="grid gap-0.5">
-        {items.map(({ href, label, icon }) => (
+        {items.map(({ href, label, icon: Icon }) => (
           <li key={href}>
-            <NavLink href={href} label={label} icon={icon} />
+            <NavLink href={href}>
+              <Icon className="size-4" aria-hidden />
+              <span>{label}</span>
+            </NavLink>
           </li>
         ))}
       </ul>

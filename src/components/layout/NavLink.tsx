@@ -1,15 +1,13 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import type { ComponentType } from 'react';
 
 interface Props {
   href: string;
-  label: string;
-  icon: ComponentType<{ className?: string; 'aria-hidden'?: boolean }>;
+  children: React.ReactNode;
 }
 
-export function NavLink({ href, label, icon: Icon }: Props) {
+export function NavLink({ href, children }: Props) {
   const pathname = usePathname();
   const active = pathname === href || pathname.startsWith(`${href}/`);
   return (
@@ -28,8 +26,7 @@ export function NavLink({ href, label, icon: Icon }: Props) {
           className="absolute left-0 top-1/2 h-5 w-[2px] -translate-y-1/2 rounded-r bg-(--color-accent)"
         />
       )}
-      <Icon className="size-4" aria-hidden />
-      <span>{label}</span>
+      {children}
     </Link>
   );
 }
