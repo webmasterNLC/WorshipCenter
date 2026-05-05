@@ -1,5 +1,11 @@
 // Fails CI if 'service_role' appears in any client-bundle JS file.
 // We never want SUPABASE_SERVICE_ROLE_KEY to leak to the browser.
+//
+// This script intentionally walks a fixed, build-output directory tree
+// (.next/static) using non-literal fs paths. eslint-plugin-security flags
+// non-literal fs args by default; here it's a known-safe traversal of our
+// own build output, so we disable those rules for the file.
+/* eslint-disable security/detect-non-literal-fs-filename */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 

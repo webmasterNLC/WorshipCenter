@@ -4,6 +4,12 @@ on:
   push: { branches: [main] }
   pull_request:
 
+# Silences "Node.js 20 actions are deprecated" warnings emitted by pnpm/action-setup@v4
+# and supabase/setup-cli@v1 (no v5 published yet for these). Forces them to run on
+# Node 24 instead. Safe — these are JS actions with no Node 20 dependencies.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   unit:
     runs-on: ubuntu-latest
@@ -33,10 +39,15 @@ jobs:
         run: supabase start
       - name: Capture env
         run: |
-          supabase status -o env >> $GITHUB_ENV
-          echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL" >> $GITHUB_ENV
-          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY" >> $GITHUB_ENV
-          echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY" >> $GITHUB_ENV
+          # Eval supabase env in the current shell so we can read $API_URL etc.
+          # GITHUB_ENV vars only become visible to *subsequent* steps, so doing
+          # this in two steps would still leave them undefined here.
+          eval "$(supabase status -o env)"
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+          } >> "$GITHUB_ENV"
       - run: pnpm test:rls
       - if: always()
         run: supabase stop
