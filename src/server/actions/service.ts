@@ -129,7 +129,7 @@ export async function getServiceAssignments(
   const { data, error } = await sb
     .from('service_assignments')
     .select(
-      'id, role, member_id, notes, member:profiles(display_name)',
+      'id, role, member_id, notes, member:profiles!member_id(display_name)',
     )
     .eq('playlist_id', playlistId);
   if (error) throw new Error(error.message);
@@ -251,7 +251,7 @@ export async function notifyRota(playlistId: string, message?: string) {
 
   const { data: assignments, error: aErr } = await sb
     .from('service_assignments')
-    .select('member_id, role, member:profiles(display_name)')
+    .select('member_id, role, member:profiles!member_id(display_name)')
     .eq('playlist_id', playlistId);
   if (aErr) throw new Error(aErr.message);
 
