@@ -8,11 +8,11 @@ jobs:
   unit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
-        with: { version: 9 }
-      - uses: actions/setup-node@v4
-        with: { node-version: 20, cache: pnpm }
+        with: { version: 10 }
+      - uses: actions/setup-node@v5
+        with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm lint
@@ -21,11 +21,11 @@ jobs:
   rls:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
-        with: { version: 9 }
-      - uses: actions/setup-node@v4
-        with: { node-version: 20, cache: pnpm }
+        with: { version: 10 }
+      - uses: actions/setup-node@v5
+        with: { node-version: 22, cache: pnpm }
       - uses: supabase/setup-cli@v1
         with: { version: latest }
       - run: pnpm install --frozen-lockfile
@@ -44,11 +44,11 @@ jobs:
   scan-bundle:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
-        with: { version: 9 }
-      - uses: actions/setup-node@v4
-        with: { node-version: 20, cache: pnpm }
+        with: { version: 10 }
+      - uses: actions/setup-node@v5
+        with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - name: Build with placeholder env
         env:
