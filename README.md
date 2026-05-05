@@ -2,7 +2,7 @@
 
 Worship songs, chords, and setlists for NLC Burgdorf.
 
-**Status:** Plan A — Foundation. Auth + invitations + admin.
+**Status:** v1 (Plan A — Foundation). Auth + invitations + admin. Deployable to Vercel.
 
 ## Stack
 
@@ -50,9 +50,88 @@ pnpm db:reset         # rebuild local DB from migrations
 pnpm db:seed          # idempotent seed
 ```
 
+## Deploy to Vercel (v1 / Plan A)
+
+This is everything you need to put the foundation online.
+
+### 1. Create a hosted Supabase project
+
+- https://supabase.com → New Project (free tier is fine).
+- From Project Settings → API, capture three values:
+  - **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
+  - **anon public key** → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+  - **service_role key** → `SUPABASE_SERVICE_ROLE_KEY` (server-only, keep secret)
+
+### 2. Apply the migrations
+
+In Supabase Dashboard → SQL Editor, paste and run each file in order:
+
+1. `supabase/migrations/0001_init.sql` — tables
+2. `supabase/migrations/0002_functions.sql` — `auth.role_of` + `write_audit`
+3. `supabase/migrations/0003_rls.sql` — Row-Level Security policies
+
+### 3. Seed the first admin
+
+In Supabase Dashboard:
+
+1. Authentication → Users → "Add user" → enter your email + password.
+2. Copy the new user's UUID.
+3. SQL Editor:
+   ```sql
+   insert into profiles (id, display_name, role)
+   values ('<uuid-from-auth.users>', 'Admin', 'admin');
+   ```
+
+### 4. Configure custom SMTP for auth emails
+
+Supabase Dashboard → Authentication → SMTP Settings. Point at your church
+mail server with the same credentials you'll set on Vercel below. Without
+this, magic-link sign-in emails won't deliver.
+
+### 5. Push to Vercel
+
+- https://vercel.com/new → Import the GitHub repo.
+- Set Production environment variables:
+
+  | Variable | Source |
+  |---|---|
+  | `NEXT_PUBLIC_SUPABASE_URL` | Supabase API settings |
+  | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase API settings |
+  | `SUPABASE_SERVICE_ROLE_KEY` | Supabase API settings (secret) |
+  | `APP_ORIGIN` | `https://<your-vercel-app>.vercel.app` |
+  | `SMTP_HOST` / `SMTP_PORT` / `SMTP_SECURE` | church mail server |
+  | `SMTP_USER` / `SMTP_PASSWORD` / `SMTP_FROM` | mailbox creds + sender |
+
+  Skip the `SEED_*` vars — they're only used by the local seed script.
+
+### 6. Wire the redirect
+
+After the first deploy, in Supabase Dashboard → Authentication → URL
+Configuration:
+
+- **Site URL**: your Vercel domain
+- **Redirect URLs**: add `https://<your-domain>/api/auth/callback`
+
+Without this, the magic-link callback fails.
+
+### What ships in this v1
+
+- Sign-in via magic link.
+- Admin can invite + revoke users via `/admin/invites`.
+- Admin can change roles via `/admin/users`.
+- Role-aware home, profile editing at `/me`.
+- All RLS policies live; non-admins get 403 on `/admin/*`.
+- `/songs` and `/playlists` are "coming soon" stubs — Plan B & C.
+- Search engine indexing blocked via `public/robots.txt` (invite-only app).
+
 ## Repo layout
 
 See [`docs/superpowers/specs/2026-05-04-nlc-burgdorf-songdrop-design.md`](docs/superpowers/specs/2026-05-04-nlc-burgdorf-songdrop-design.md) for the full architecture spec.
+
+Implementation plans:
+- [`docs/superpowers/plans/2026-05-04-plan-a-foundation.md`](docs/superpowers/plans/2026-05-04-plan-a-foundation.md) — shipped
+- [`docs/superpowers/plans/2026-05-04-plan-a-followups.md`](docs/superpowers/plans/2026-05-04-plan-a-followups.md) — security hardening (folded into Plan B Phase 0)
+- [`docs/superpowers/plans/2026-05-04-plan-b-song-system.md`](docs/superpowers/plans/2026-05-04-plan-b-song-system.md) — songs + chord engine + viewer + editor (queued)
 
 ## Security notes
 
