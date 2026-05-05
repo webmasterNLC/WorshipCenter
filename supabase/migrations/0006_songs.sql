@@ -20,7 +20,9 @@ create index songs_title_tsv on songs using gin (to_tsvector('simple', title));
 create index songs_language_idx on songs (language);
 
 create or replace function public.set_updated_at() returns trigger
-  language plpgsql as $$
+  language plpgsql
+  set search_path = public
+  as $$
 begin
   new.updated_at = now();
   return new;
