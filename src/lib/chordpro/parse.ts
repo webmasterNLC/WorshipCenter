@@ -26,15 +26,13 @@ export function parseChord(token: string): ParsedChord | null {
   const rootText = `${rootLetter}${rootAcc}`;
   const root = pitchClassFromRoot(rootText);
   if (root === null) return null;
-  let bass: PitchClass | undefined;
-  let bassText: string | undefined;
   if (bassLetter) {
-    bassText = `${bassLetter}${bassAcc}`;
-    const b = pitchClassFromRoot(bassText);
-    if (b === null) return null;
-    bass = b;
+    const bassText = `${bassLetter}${bassAcc}`;
+    const bass = pitchClassFromRoot(bassText);
+    if (bass === null) return null;
+    return { root, rootText, quality, bass, bassText, raw: token };
   }
-  return { root, rootText, quality, bass, bassText, raw: token };
+  return { root, rootText, quality, raw: token };
 }
 
 export function tokenizeChordPro(body: string): ChordProToken[] {
