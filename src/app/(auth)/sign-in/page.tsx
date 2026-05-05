@@ -4,29 +4,44 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 async function signInAction(formData: FormData) {
   'use server';
   const email = String(formData.get('email') ?? '').trim().toLowerCase();
+  const password = String(formData.get('password') ?? '');
   if (!email || !email.includes('@')) redirect('/sign-in?error=invalid_email');
+  if (!password) redirect('/sign-in?error=missing_password');
 
   const sb = await createSupabaseServerClient();
-  const { error } = await sb.auth.signInWithOtp({
-    email,
-    options: { emailRedirectTo: `${process.env.APP_ORIGIN}/api/auth/callback?next=/home` },
-  });
-  if (error) redirect(`/sign-in?error=${encodeURIComponent(error.message)}`);
-  redirect('/sign-in?sent=1');
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) {
+    console.error('[signin] supabase error:', error.message);
+    redirect('/sign-in?error=invalid_credentials');
+  }
+  redirect('/home');
+}
+
+function friendlySignInError(code: string): string {
+  switch (code) {
+    case 'invalid_email':
+      return 'Please enter a valid email address.';
+    case 'missing_password':
+      return 'Please enter your password.';
+    case 'invalid_credentials':
+      return 'Email or password is incorrect.';
+    default:
+      return 'Sign-in failed. Please try again.';
+  }
 }
 
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ sent?: string; error?: string; invite?: string }>;
+  searchParams: Promise<{ error?: string; invite?: string }>;
 }) {
-  const { sent, error, invite } = await searchParams;
+  const { error, invite } = await searchParams;
 
   return (
     <>
       <h1 className="mb-1 text-xl font-semibold">Sign in</h1>
       <p className="mb-6 text-sm text-(--color-muted-fg)">
-        We&apos;ll email you a magic link.
+        Enter your email and password.
       </p>
 
       {invite === 'invalid' && (
@@ -34,14 +49,14 @@ export default async function SignInPage({
           That invitation link is invalid or has expired.
         </p>
       )}
-      {error && (
+      {invite === 'already_used' && (
         <p className="mb-4 rounded-md border border-(--color-danger)/30 bg-(--color-danger)/10 p-3 text-sm">
-          {error}
+          That invitation has already been used. Sign in below if you have an account.
         </p>
       )}
-      {sent && (
-        <p className="mb-4 rounded-md border border-(--color-accent)/30 bg-(--color-accent)/10 p-3 text-sm">
-          Check your inbox for the sign-in link.
+      {error && (
+        <p className="mb-4 rounded-md border border-(--color-danger)/30 bg-(--color-danger)/10 p-3 text-sm">
+          {friendlySignInError(error)}
         </p>
       )}
 
@@ -56,11 +71,21 @@ export default async function SignInPage({
             className="rounded-md border border-(--color-border) bg-(--color-bg) px-3 py-2 outline-none focus:ring-2 focus:ring-(--color-accent)"
           />
         </label>
+        <label className="grid gap-1 text-sm">
+          <span>Password</span>
+          <input
+            type="password"
+            name="password"
+            required
+            autoComplete="current-password"
+            className="rounded-md border border-(--color-border) bg-(--color-bg) px-3 py-2 outline-none focus:ring-2 focus:ring-(--color-accent)"
+          />
+        </label>
         <button
           type="submit"
           className="rounded-md bg-(--color-accent) px-3 py-2 font-medium text-(--color-accent-fg)"
         >
-          Send magic link
+          Sign in
         </button>
       </form>
     </>

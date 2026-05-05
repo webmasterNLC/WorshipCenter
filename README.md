@@ -33,7 +33,7 @@ pnpm db:seed           # creates the seeded admin user
 pnpm dev               # http://localhost:3000
 ```
 
-Sign in with `SEED_ADMIN_EMAIL` (configured in `.env.local`). The dev seed lets you sign in via password; production uses magic-link only.
+Sign in with `SEED_ADMIN_EMAIL` and `SEED_PASSWORD` (configured in `.env.local`). Sign-in is email + password. New users land via an invitation email and set their own password during onboarding.
 
 ## Common commands
 
@@ -82,11 +82,12 @@ In Supabase Dashboard:
    values ('<uuid-from-auth.users>', 'Admin', 'admin');
    ```
 
-### 4. Configure custom SMTP for auth emails
+### 4. Configure custom SMTP for invitation emails
 
-Supabase Dashboard → Authentication → SMTP Settings. Point at your church
-mail server with the same credentials you'll set on Vercel below. Without
-this, magic-link sign-in emails won't deliver.
+Supabase's outbound SMTP is **not** required — sign-in is email + password,
+and invitation emails are sent by our app via `nodemailer` using the Vercel
+env vars below. You only need Supabase SMTP if you later re-enable
+magic-link / password-reset flows in the dashboard.
 
 ### 5. Push to Vercel
 
@@ -116,7 +117,7 @@ Without this, the magic-link callback fails.
 
 ### What ships in this v1
 
-- Sign-in via magic link.
+- Sign-in via email + password.
 - Admin can invite + revoke users via `/admin/invites`.
 - Admin can change roles via `/admin/users`.
 - Role-aware home, profile editing at `/me`.
