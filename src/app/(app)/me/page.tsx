@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { User, Mail, KeyRound, ShieldCheck, LogOut } from 'lucide-react';
+import { User, Mail, KeyRound, LogOut } from 'lucide-react';
 import { loadSession } from '@/server/auth/require';
 import {
   updateMyProfile,
@@ -60,19 +60,6 @@ export default async function MePage({ searchParams }: PageProps) {
 
   return (
     <div className="grid gap-6 max-w-2xl">
-
-      <header className="grid gap-2">
-        <span className="text-xs uppercase tracking-[0.22em] text-(--color-muted-fg)">
-          Account
-        </span>
-        <h1 className="font-display-tight text-4xl md:text-5xl">
-          Your <em className="text-(--color-accent) not-italic">profile</em>.
-        </h1>
-        <p className="text-sm text-(--color-muted-fg) flex items-center gap-1.5 mt-1">
-          <ShieldCheck className="size-3.5" aria-hidden />
-          Signed in as <span className="font-medium capitalize">{session.profile.role}</span>
-        </p>
-      </header>
 
       {banner && (
         <div
