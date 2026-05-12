@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
 import { ValidationError, NotFoundError } from '@/server/auth/errors';
-import { requireRole, requireOwnerOrAdmin } from '@/server/auth/require';
+import { requireRole } from '@/server/auth/require';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import {
@@ -39,7 +39,7 @@ export async function assignToService(
   const parsed = assignToServiceInput.safeParse(rawInput);
   if (!parsed.success) throw new ValidationError(parsed.error.flatten());
 
-  const session = await requireOwnerOrAdmin(parsed.data.playlist_id);
+  const session = await requireRole('admin');
 
   const sb = await createSupabaseServerClient();
 
@@ -92,7 +92,7 @@ export async function unassignFromService(
   const parsed = unassignFromServiceInput.safeParse(rawInput);
   if (!parsed.success) throw new ValidationError(parsed.error.flatten());
 
-  const session = await requireOwnerOrAdmin(parsed.data.playlist_id);
+  const session = await requireRole('admin');
 
   const sb = await createSupabaseServerClient();
   const { error } = await sb
@@ -158,9 +158,9 @@ export async function getServiceAssignments(
  * are the ones who can assign).
  */
 export async function getRotaCandidates(
-  playlistId: string,
+  _playlistId: string,
 ): Promise<RotaCandidate[]> {
-  await requireOwnerOrAdmin(playlistId);
+  await requireRole('admin');
 
   // Use admin client to bypass RLS for the listing — same pattern as
   // listMembersForAdmin().
@@ -189,7 +189,6 @@ export async function getRotaCandidates(
 
 export interface MyDuty {
   playlist_id: string;
-  playlist_name: string;
   scheduled_for: string;
   role: RotaRole;
 }
@@ -205,22 +204,21 @@ export async function getMyUpcomingDuties(limit = 5): Promise<MyDuty[]> {
 
   const { data, error } = await sb
     .from('service_assignments')
-    .select('role, playlist:playlists(id, name, scheduled_for)')
+    .select('role, playlist:playlists(id, scheduled_for)')
     .eq('member_id', session.profile.id);
   if (error) throw new Error(error.message);
 
   const out: MyDuty[] = [];
   for (const row of data ?? []) {
     const p = row.playlist as
-      | Array<{ id: string; name: string; scheduled_for: string | null }>
-      | { id: string; name: string; scheduled_for: string | null }
+      | Array<{ id: string; scheduled_for: string | null }>
+      | { id: string; scheduled_for: string | null }
       | null;
     const playlist = Array.isArray(p) ? p[0] : p;
     if (!playlist || !playlist.scheduled_for) continue;
     if (playlist.scheduled_for < today) continue;
     out.push({
       playlist_id: playlist.id,
-      playlist_name: playlist.name,
       scheduled_for: playlist.scheduled_for,
       role: row.role as RotaRole,
     });
@@ -238,13 +236,13 @@ export async function notifyRota(playlistId: string, message?: string) {
   if (!playlistId.match(/^[0-9a-f-]{36}$/i)) {
     throw new ValidationError({ playlist_id: ['Invalid id'] });
   }
-  const session = await requireOwnerOrAdmin(playlistId);
+  const session = await requireRole('admin');
 
   const sb = await createSupabaseServerClient();
 
   const { data: playlist, error: plErr } = await sb
     .from('playlists')
-    .select('id, name, scheduled_for')
+    .select('id, scheduled_for')
     .eq('id', playlistId)
     .single();
   if (plErr || !playlist) throw new NotFoundError('Playlist');
@@ -271,9 +269,13 @@ export async function notifyRota(playlistId: string, message?: string) {
     import('@/lib/email/templates/playlist-share'),
   ]);
   const mailer = defaultMailer();
+  // No more free-text name — use the scheduled date as the program label.
+  const programLabel = playlist.scheduled_for
+    ? `Program · ${playlist.scheduled_for}`
+    : 'Program';
   const { subject, html, text } = renderPlaylistShareEmail({
     senderName: session.profile.display_name,
-    playlistName: playlist.name,
+    playlistName: programLabel,
     scheduledFor: playlist.scheduled_for ?? null,
     message: message ?? null,
     url,

@@ -12,7 +12,6 @@ export interface RecentSong {
 
 export interface NextService {
   id: string;
-  name: string;
   scheduled_for: string;
   item_count: number;
 }
@@ -41,7 +40,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
         .limit(5),
       sb
         .from('playlists')
-        .select('id, name, scheduled_for, playlist_items(count)')
+        .select('id, scheduled_for, playlist_items(count)')
         .gte('scheduled_for', today)
         .order('scheduled_for', { ascending: true })
         .limit(1)
@@ -59,7 +58,6 @@ export async function getDashboardStats(): Promise<DashboardStats> {
         : 0;
     nextService = {
       id: nextServiceRes.data.id,
-      name: nextServiceRes.data.name,
       scheduled_for: nextServiceRes.data.scheduled_for,
       item_count: itemCount,
     };

@@ -3,7 +3,11 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
 import { ValidationError, NotFoundError } from '@/server/auth/errors';
-import { requireRole, requireOwnerOrAdmin, type Session } from '@/server/auth/require';
+import {
+  requireRole,
+  requireAdminOrAssignedLeader,
+  type Session,
+} from '@/server/auth/require';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { defaultMailer } from '@/lib/email/transport';
@@ -24,7 +28,6 @@ import {
 
 export interface PlaylistRow {
   id: string;
-  name: string;
   scheduled_for: string | null;
   description: string | null;
   owner_id: string;
@@ -33,7 +36,6 @@ export interface PlaylistRow {
 
 export interface PlaylistListItem {
   id: string;
-  name: string;
   scheduled_for: string | null;
   updated_at: string;
   owner_id: string;
@@ -70,7 +72,7 @@ export interface PlaylistDetail extends PlaylistRow {
 // ---------------------------------------------------------------------------
 
 export interface CreatePlaylistDeps {
-  requireLeaderOrAdmin: () => Promise<Session>;
+  requireAdmin: () => Promise<Session>;
   db: {
     insertPlaylist(row: Record<string, unknown>): Promise<{ id: string }>;
     writeAudit(input: {
@@ -87,12 +89,11 @@ export function makeCreatePlaylist(deps: CreatePlaylistDeps) {
   return async function createPlaylistImpl(
     rawInput: z.input<typeof createPlaylistInput>,
   ): Promise<{ id: string }> {
-    const session = await deps.requireLeaderOrAdmin();
+    const session = await deps.requireAdmin();
     const parsed = createPlaylistInput.safeParse(rawInput);
     if (!parsed.success) throw new ValidationError(parsed.error.flatten());
 
     const inserted = await deps.db.insertPlaylist({
-      name: parsed.data.name,
       scheduled_for: parsed.data.scheduled_for ?? null,
       description: parsed.data.description ?? null,
       owner_id: session.profile.id,
@@ -103,7 +104,7 @@ export function makeCreatePlaylist(deps: CreatePlaylistDeps) {
       action: 'playlist.create',
       targetType: 'playlist',
       targetId: inserted.id,
-      metadata: { name: parsed.data.name },
+      metadata: { scheduled_for: parsed.data.scheduled_for ?? null },
     });
 
     return { id: inserted.id };
@@ -111,7 +112,7 @@ export function makeCreatePlaylist(deps: CreatePlaylistDeps) {
 }
 
 const realCreatePlaylistDeps: CreatePlaylistDeps = {
-  requireLeaderOrAdmin: () => requireRole('admin', 'leader'),
+  requireAdmin: () => requireRole('admin'),
   db: {
     async insertPlaylist(row) {
       const sb = await createSupabaseServerClient();
@@ -143,7 +144,7 @@ export async function updatePlaylist(
   id: string,
   rawInput: z.input<typeof updatePlaylistInput>,
 ) {
-  const session = await requireOwnerOrAdmin(id);
+  const session = await requireRole('admin');
   const parsedId = playlistIdInput.safeParse({ id });
   if (!parsedId.success) throw new ValidationError(parsedId.error.flatten());
   const parsed = updatePlaylistInput.safeParse(rawInput);
@@ -151,7 +152,6 @@ export async function updatePlaylist(
 
   const sb = await createSupabaseServerClient();
   const updates: Record<string, unknown> = {};
-  if (parsed.data.name !== undefined) updates.name = parsed.data.name;
   if (parsed.data.scheduled_for !== undefined) updates.scheduled_for = parsed.data.scheduled_for;
   if (parsed.data.description !== undefined) updates.description = parsed.data.description;
 
@@ -176,7 +176,7 @@ export async function updatePlaylist(
 // ---------------------------------------------------------------------------
 
 export async function deletePlaylist(id: string) {
-  const session = await requireOwnerOrAdmin(id);
+  const session = await requireRole('admin');
   const parsedId = playlistIdInput.safeParse({ id });
   if (!parsedId.success) throw new ValidationError(parsedId.error.flatten());
 
@@ -201,14 +201,23 @@ export async function deletePlaylist(id: string) {
 // ---------------------------------------------------------------------------
 
 export async function listPlaylists(): Promise<PlaylistListItem[]> {
-  await requireRole('admin', 'leader', 'viewer');
+  const session = await requireRole('admin', 'leader', 'viewer');
   const sb = await createSupabaseServerClient();
-  const { data, error } = await sb
+
+  // Non-admins only see today + future. Admin sees the entire archive.
+  let query = sb
     .from('playlists')
     .select(
-      'id, name, scheduled_for, updated_at, owner_id, owner:profiles(display_name), playlist_items(count)',
+      'id, scheduled_for, updated_at, owner_id, owner:profiles(display_name), playlist_items(count)',
     )
     .order('updated_at', { ascending: false });
+
+  if (session.profile.role !== 'admin') {
+    const today = new Date().toISOString().slice(0, 10);
+    query = query.gte('scheduled_for', today);
+  }
+
+  const { data, error } = await query;
   if (error) throw new Error(error.message);
 
   return (data ?? []).map((row) => {
@@ -228,7 +237,6 @@ export async function listPlaylists(): Promise<PlaylistListItem[]> {
 
     return {
       id: row.id,
-      name: row.name,
       scheduled_for: row.scheduled_for ?? null,
       updated_at: row.updated_at,
       owner_id: row.owner_id,
@@ -250,7 +258,7 @@ export async function getPlaylist(id: string): Promise<PlaylistDetail | null> {
   const sb = await createSupabaseServerClient();
   const { data: playlist, error: plErr } = await sb
     .from('playlists')
-    .select('id, name, scheduled_for, description, owner_id, updated_at')
+    .select('id, scheduled_for, description, owner_id, updated_at')
     .eq('id', id)
     .single();
   if (plErr || !playlist) return null;
@@ -304,7 +312,6 @@ export async function getPlaylist(id: string): Promise<PlaylistDetail | null> {
 
   return {
     id: playlist.id,
-    name: playlist.name,
     scheduled_for: playlist.scheduled_for ?? null,
     description: playlist.description ?? null,
     owner_id: playlist.owner_id,
@@ -321,7 +328,7 @@ export async function addSongToPlaylist(rawInput: z.input<typeof addSongInput>) 
   const parsed = addSongInput.safeParse(rawInput);
   if (!parsed.success) throw new ValidationError(parsed.error.flatten());
 
-  const session = await requireOwnerOrAdmin(parsed.data.playlist_id);
+  const session = await requireAdminOrAssignedLeader(parsed.data.playlist_id);
 
   const sb = await createSupabaseServerClient();
 
@@ -388,7 +395,7 @@ export async function removePlaylistItem(itemId: string) {
     .single();
   if (fetchErr || !item) throw new NotFoundError('PlaylistItem');
 
-  const session = await requireOwnerOrAdmin(item.playlist_id);
+  const session = await requireAdminOrAssignedLeader(item.playlist_id);
 
   // Delete the item
   const { error: delErr } = await sb.from('playlist_items').delete().eq('id', itemId);
@@ -443,7 +450,7 @@ export async function updatePlaylistItem(rawInput: z.input<typeof updateItemInpu
     .single();
   if (fetchErr || !item) throw new NotFoundError('PlaylistItem');
 
-  const session = await requireOwnerOrAdmin(item.playlist_id);
+  const session = await requireAdminOrAssignedLeader(item.playlist_id);
 
   const updates: Record<string, unknown> = {};
   if (parsed.data.transpose_semitones !== undefined) {
@@ -481,7 +488,7 @@ export async function reorderPlaylistItems(rawInput: z.input<typeof reorderInput
   const parsed = reorderInput.safeParse(rawInput);
   if (!parsed.success) throw new ValidationError(parsed.error.flatten());
 
-  const session = await requireOwnerOrAdmin(parsed.data.playlist_id);
+  const session = await requireAdminOrAssignedLeader(parsed.data.playlist_id);
 
   const sb = await createSupabaseServerClient();
 
@@ -512,7 +519,7 @@ export async function reorderPlaylistItems(rawInput: z.input<typeof reorderInput
 // ---------------------------------------------------------------------------
 
 export async function savePlaylistVersion(playlist_id: string) {
-  const session = await requireOwnerOrAdmin(playlist_id);
+  const session = await requireAdminOrAssignedLeader(playlist_id);
   const parsedId = playlistIdInput.safeParse({ id: playlist_id });
   if (!parsedId.success) throw new ValidationError(parsedId.error.flatten());
 
@@ -560,7 +567,7 @@ export async function sharePlaylist(rawInput: z.input<typeof sharePlaylistInput>
   const parsed = sharePlaylistInput.safeParse(rawInput);
   if (!parsed.success) throw new ValidationError(parsed.error.flatten());
 
-  const session = await requireOwnerOrAdmin(parsed.data.playlist_id);
+  const session = await requireAdminOrAssignedLeader(parsed.data.playlist_id);
 
   const sb = await createSupabaseServerClient();
 

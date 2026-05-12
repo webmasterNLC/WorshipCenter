@@ -2,9 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ForbiddenError, ValidationError } from '@/server/auth/errors';
 import { makeCreatePlaylist } from '../playlists';
 
-const leaderSession = {
-  user: { id: 'leader-uid' },
-  profile: { id: 'leader-uid', display_name: 'Band Leader', role: 'leader' as const, created_at: '' },
+const adminSession = {
+  user: { id: 'admin-uid' },
+  profile: { id: 'admin-uid', display_name: 'Admin', role: 'admin' as const, created_at: '' },
 };
 
 function makeFakes() {
@@ -23,42 +23,32 @@ function makeFakes() {
 describe('createPlaylist', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('throws Forbidden when caller is not leader or admin', async () => {
+  it('throws Forbidden when caller is not admin', async () => {
     const { db } = makeFakes();
     const action = makeCreatePlaylist({
-      requireLeaderOrAdmin: async () => { throw new ForbiddenError(); },
+      requireAdmin: async () => { throw new ForbiddenError(); },
       db,
     });
-    await expect(action({ name: 'Sunday service' })).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(action({})).rejects.toBeInstanceOf(ForbiddenError);
   });
 
-  it('throws Validation when name is empty', async () => {
-    const { db } = makeFakes();
-    const action = makeCreatePlaylist({
-      requireLeaderOrAdmin: async () => leaderSession,
-      db,
-    });
-    await expect(action({ name: '' })).rejects.toBeInstanceOf(ValidationError);
-  });
-
-  it('inserts playlist with owner_id + writes audit', async () => {
+  it('inserts program with owner_id + writes audit', async () => {
     const { db, inserted } = makeFakes();
     const action = makeCreatePlaylist({
-      requireLeaderOrAdmin: async () => leaderSession,
+      requireAdmin: async () => adminSession,
       db,
     });
     const result = await action({
-      name: 'Sunday 2026-05-04',
       scheduled_for: '2026-05-04',
-      description: 'Morning service setlist',
+      description: 'Morning service notes',
     });
     expect(result.id).toBe('pl1');
-    expect(inserted[0]?.owner_id).toBe('leader-uid');
-    expect(inserted[0]?.name).toBe('Sunday 2026-05-04');
+    expect(inserted[0]?.owner_id).toBe('admin-uid');
+    expect(inserted[0]?.scheduled_for).toBe('2026-05-04');
     expect(db.writeAudit).toHaveBeenCalledWith(
       expect.objectContaining({
         action: 'playlist.create',
-        actorId: 'leader-uid',
+        actorId: 'admin-uid',
         targetId: 'pl1',
       }),
     );
@@ -67,11 +57,11 @@ describe('createPlaylist', () => {
   it('throws Validation when scheduled_for is not a valid date string', async () => {
     const { db } = makeFakes();
     const action = makeCreatePlaylist({
-      requireLeaderOrAdmin: async () => leaderSession,
+      requireAdmin: async () => adminSession,
       db,
     });
     await expect(
-      action({ name: 'Bad date', scheduled_for: 'not-a-date' }),
+      action({ scheduled_for: 'not-a-date' }),
     ).rejects.toBeInstanceOf(ValidationError);
   });
 });

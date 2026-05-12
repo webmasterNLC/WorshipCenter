@@ -9,7 +9,7 @@ import {
   savePlaylistVersion,
 } from '@/server/actions/playlists';
 import { listSongs } from '@/server/actions/songs';
-import { requireOwnerOrAdmin } from '@/server/auth/require';
+import { requireAdminOrAssignedLeader } from '@/server/auth/require';
 import { PlaylistEditorClient } from '@/components/playlists/PlaylistEditorClient';
 import type { PlaylistItemData, SongPickerItem } from '@/components/playlists/PlaylistEditorClient';
 
@@ -19,21 +19,20 @@ interface PageProps {
 
 export default async function PlaylistEditPage({ params }: PageProps) {
   const { id } = await params;
-  await requireOwnerOrAdmin(id);
+  // Admin OR a leader who is on this program's rota. RLS will also enforce
+  // this at the DB layer for item writes; this is just the page-level gate.
+  await requireAdminOrAssignedLeader(id);
 
   const [playlist, songs] = await Promise.all([getPlaylist(id), listSongs()]);
   if (!playlist) notFound();
 
   // -------------------------------------------------------------------------
-  // Inline server actions — these are passed as props to the client component.
-  // Each has its own 'use server' directive (file-level is avoided for
-  // Turbopack compatibility).
+  // Inline server actions — passed as props to the client component.
   // -------------------------------------------------------------------------
 
-  async function saveMeta(name: string, scheduledFor: string, description: string) {
+  async function saveMeta(scheduledFor: string, description: string) {
     'use server';
     await updatePlaylist(id, {
-      name,
       scheduled_for: scheduledFor || undefined,
       description: description || undefined,
     });
@@ -104,7 +103,6 @@ export default async function PlaylistEditPage({ params }: PageProps) {
   return (
     <PlaylistEditorClient
       playlistId={id}
-      initialName={playlist.name}
       initialDate={playlist.scheduled_for ?? ''}
       initialDesc={playlist.description ?? ''}
       initialItems={initialItems}

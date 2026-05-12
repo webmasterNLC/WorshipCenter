@@ -42,13 +42,18 @@ export default async function PlaylistPage({ params, searchParams }: PageProps) 
   const [playlist, session] = await Promise.all([getPlaylist(id), loadSession()]);
   if (!playlist) notFound();
 
-  const isOwnerOrAdmin =
-    session?.profile.role === 'admin' ||
-    session?.profile.id === playlist.owner_id;
+  const isAdmin = session?.profile.role === 'admin';
 
-  // Rota data — candidates only loadable by owner/admin (capability gate).
+  // Rota data — candidates only loadable by admin now.
   const assignments = await getServiceAssignments(id);
-  const candidates = isOwnerOrAdmin ? await getRotaCandidates(id) : [];
+  const candidates = isAdmin ? await getRotaCandidates(id) : [];
+
+  // Leader can edit the song list (items) only if admin has assigned them
+  // to this program's rota. Viewers never edit.
+  const canEditItems =
+    isAdmin ||
+    (session?.profile.role === 'leader' &&
+      assignments.some((a) => a.member_id === session.profile.id));
 
   async function handleNotify(form: FormData) {
     'use server';
@@ -88,10 +93,12 @@ export default async function PlaylistPage({ params, searchParams }: PageProps) 
             )}
             <div className="min-w-0 pt-1">
               <span className="text-xs uppercase tracking-[0.22em] text-(--color-muted-fg)">
-                Setlist
+                Program
               </span>
               <h1 className="font-display-tight text-3xl md:text-4xl mt-0.5 leading-tight">
-                {playlist.name}
+                {date
+                  ? `${date.weekday}, ${date.day} ${date.month} ${date.year}`
+                  : 'Undated program'}
               </h1>
               {playlist.description && (
                 <p className="text-sm text-(--color-muted-fg) mt-2 whitespace-pre-wrap max-w-prose">
@@ -111,7 +118,7 @@ export default async function PlaylistPage({ params, searchParams }: PageProps) 
                 Performance
               </Link>
             )}
-            {isOwnerOrAdmin && (
+            {canEditItems && (
               <Link
                 href={`/playlists/${id}/edit`}
                 className="flex items-center gap-1.5 rounded-lg border border-(--color-border) px-3 py-1.5 text-sm hover:border-(--color-accent)"
@@ -123,7 +130,7 @@ export default async function PlaylistPage({ params, searchParams }: PageProps) 
           </div>
         </div>
 
-        {isOwnerOrAdmin && assignments.length > 0 && (
+        {isAdmin && assignments.length > 0 && (
           <form action={handleNotify} className="flex items-center gap-2 mt-1">
             <input
               name="message"
@@ -148,7 +155,7 @@ export default async function PlaylistPage({ params, searchParams }: PageProps) 
         playlistId={id}
         assignments={assignments}
         candidates={candidates}
-        canEdit={isOwnerOrAdmin}
+        canEdit={isAdmin}
         assign={assignToService}
         unassign={unassignFromService}
       />
@@ -161,8 +168,8 @@ export default async function PlaylistPage({ params, searchParams }: PageProps) 
         </h2>
         {playlist.items.length === 0 ? (
           <p className="rounded-xl border border-dashed border-(--color-border) p-6 text-sm text-(--color-muted-fg)">
-            No songs in this setlist yet.
-            {isOwnerOrAdmin && (
+            No songs in this program yet.
+            {canEditItems && (
               <Link
                 href={`/playlists/${id}/edit`}
                 className="ml-1 text-(--color-accent) underline"

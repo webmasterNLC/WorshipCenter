@@ -9,17 +9,16 @@ interface PageProps {
 }
 
 export default async function NewPlaylistPage({ searchParams }: PageProps) {
-  await requireRole('admin', 'leader');
+  await requireRole('admin');
   const { error } = await searchParams;
 
   async function newPlaylistAction(form: FormData) {
     'use server';
-    const name = String(form.get('name') ?? '').trim();
     const scheduledFor = String(form.get('scheduled_for') ?? '').trim() || undefined;
     const description = String(form.get('description') ?? '').trim() || undefined;
 
     const result = await runAction(() =>
-      createPlaylist({ name, scheduled_for: scheduledFor, description }),
+      createPlaylist({ scheduled_for: scheduledFor, description }),
     );
 
     if (!result.ok) {
@@ -30,49 +29,39 @@ export default async function NewPlaylistPage({ searchParams }: PageProps) {
 
   return (
     <div className="grid gap-6 max-w-lg">
-      <div>
-        <h1 className="text-2xl font-semibold">New playlist</h1>
+      <header className="grid gap-2">
+        <span className="text-xs uppercase tracking-[0.22em] text-(--color-muted-fg)">
+          Programs · New
+        </span>
+        <h1 className="font-display-tight text-3xl md:text-4xl">
+          New <em className="text-(--color-accent) not-italic">program</em>.
+        </h1>
         <p className="text-sm text-(--color-muted-fg) mt-1">
-          Create a new setlist for your band.
+          Pick the Sunday this program is for. You can add songs and assign the rota afterwards.
         </p>
-      </div>
+      </header>
 
       {error && (
-        <div className="rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-lg border border-(--color-danger)/40 bg-(--color-danger)/10 px-4 py-3 text-sm text-(--color-danger)">
           {error}
         </div>
       )}
 
       <form action={newPlaylistAction} className="grid gap-4">
         <div className="grid gap-1.5">
-          <label htmlFor="name" className="text-sm font-medium">
-            Name <span className="text-red-500">*</span>
-          </label>
-          <input
-            id="name"
-            name="name"
-            type="text"
-            required
-            maxLength={120}
-            placeholder="e.g. Sunday Service 4 May"
-            className="rounded-lg border border-(--color-border) bg-(--color-bg) px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--color-accent)"
-          />
-        </div>
-
-        <div className="grid gap-1.5">
-          <label htmlFor="scheduled_for" className="text-sm font-medium">
-            Date (optional)
+          <label htmlFor="scheduled_for" className="text-xs uppercase tracking-[0.16em] text-(--color-muted-fg)">
+            Date
           </label>
           <input
             id="scheduled_for"
             name="scheduled_for"
             type="date"
-            className="rounded-lg border border-(--color-border) bg-(--color-bg) px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--color-accent)"
+            className="rounded-lg border border-(--color-border) bg-(--color-bg) px-3 py-2 text-sm focus:border-(--color-accent) focus:outline-none"
           />
         </div>
 
         <div className="grid gap-1.5">
-          <label htmlFor="description" className="text-sm font-medium">
+          <label htmlFor="description" className="text-xs uppercase tracking-[0.16em] text-(--color-muted-fg)">
             Description (optional)
           </label>
           <textarea
@@ -80,8 +69,8 @@ export default async function NewPlaylistPage({ searchParams }: PageProps) {
             name="description"
             maxLength={2000}
             rows={3}
-            placeholder="Optional notes about this setlist…"
-            className="rounded-lg border border-(--color-border) bg-(--color-bg) px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--color-accent) resize-y"
+            placeholder="Theme, sermon reference, notes for the band…"
+            className="rounded-lg border border-(--color-border) bg-(--color-bg) px-3 py-2 text-sm focus:border-(--color-accent) focus:outline-none resize-y"
           />
         </div>
 
@@ -90,7 +79,7 @@ export default async function NewPlaylistPage({ searchParams }: PageProps) {
             type="submit"
             className="rounded-lg bg-(--color-accent) px-5 py-2 text-sm font-medium text-(--color-accent-fg) hover:opacity-90"
           >
-            Create playlist
+            Create program
           </button>
           <Link
             href="/playlists"

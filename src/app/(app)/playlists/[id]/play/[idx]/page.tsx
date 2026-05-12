@@ -31,7 +31,11 @@ export default async function PerformancePage({ params }: PageProps) {
           playlistId={id}
           currentIdx={idx}
           totalItems={playlist.items.length}
-          playlistName={playlist.name}
+          programLabel={
+            playlist.scheduled_for
+              ? `Program · ${playlist.scheduled_for}`
+              : 'Program'
+          }
         />
       }
     />

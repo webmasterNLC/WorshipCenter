@@ -63,6 +63,10 @@ export const loadSession = loadSessionCached;
 /**
  * Requires the caller to be a band member, then verifies they own the playlist
  * OR are an admin. Throws ForbiddenError otherwise.
+ *
+ * NOTE: in the new "Program" permission model this helper is being phased out
+ * in favour of requireAdminOrAssignedLeader. Kept for legacy callers that
+ * still need owner semantics.
  */
 export async function requireOwnerOrAdmin(playlistId: string): Promise<Session> {
   const session = await requireRole('admin', 'leader', 'viewer');
@@ -75,5 +79,27 @@ export async function requireOwnerOrAdmin(playlistId: string): Promise<Session> 
     .single();
   if (error || !data) throw new NotFoundError('Playlist');
   if (data.owner_id !== session.profile.id) throw new ForbiddenError();
+  return session;
+}
+
+/**
+ * Admin can edit any program. A leader can edit a program ONLY if admin
+ * has assigned them to that program's service rota. Used by song-list /
+ * version writes on a Program.
+ */
+export async function requireAdminOrAssignedLeader(playlistId: string): Promise<Session> {
+  const session = await requireRole('admin', 'leader');
+  if (session.profile.role === 'admin') return session;
+  // Leader: must appear in service_assignments for this playlist.
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('service_assignments')
+    .select('id')
+    .eq('playlist_id', playlistId)
+    .eq('member_id', session.profile.id)
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new ForbiddenError();
   return session;
 }

@@ -35,13 +35,12 @@ export interface SongPickerItem {
 
 export interface PlaylistEditorClientProps {
   playlistId: string;
-  initialName: string;
   initialDate: string;
   initialDesc: string;
   initialItems: PlaylistItemData[];
   allSongs: SongPickerItem[];
   // Server actions passed as props (inline 'use server' from the page)
-  onSaveMeta: (name: string, scheduledFor: string, description: string) => Promise<void>;
+  onSaveMeta: (scheduledFor: string, description: string) => Promise<void>;
   onAddSong: (songId: string) => Promise<void>;
   onRemoveItem: (itemId: string) => Promise<void>;
   onUpdateItemTranspose: (itemId: string, semitones: number) => Promise<void>;
@@ -56,7 +55,6 @@ const SEMITONE_OPTIONS = Array.from({ length: 25 }, (_, i) => i - 12);
 
 export function PlaylistEditorClient({
   playlistId,
-  initialName,
   initialDate,
   initialDesc,
   initialItems,
@@ -71,7 +69,6 @@ export function PlaylistEditorClient({
   onSaveVersion,
 }: PlaylistEditorClientProps) {
   const [items, setItems] = useState<PlaylistItemData[]>(initialItems);
-  const [name, setName] = useState(initialName);
   const [date, setDate] = useState(initialDate);
   const [desc, setDesc] = useState(initialDesc);
   const [songSearch, setSongSearch] = useState('');
@@ -87,9 +84,9 @@ export function PlaylistEditorClient({
   async function handleSaveMeta(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    await runAction(() => onSaveMeta(name, date, desc));
+    await runAction(() => onSaveMeta(date, desc));
     setSaving(false);
-    showToast('Playlist saved.');
+    showToast('Program saved.');
   }
 
   async function handleAddSong(songId: string) {
@@ -186,7 +183,9 @@ export function PlaylistEditorClient({
 
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold truncate">Edit: {name}</h1>
+        <h1 className="text-2xl font-semibold truncate">
+          Edit program{date ? ` · ${date}` : ''}
+        </h1>
         <div className="flex gap-2 shrink-0">
           <button
             type="button"
@@ -214,22 +213,10 @@ export function PlaylistEditorClient({
             className="grid gap-4 rounded-xl border border-(--color-border) p-4"
           >
             <h2 className="text-sm font-semibold text-(--color-muted-fg) uppercase tracking-wide">
-              Playlist info
+              Program info
             </h2>
             <div className="grid gap-1.5">
-              <label htmlFor="edit-name" className="text-sm font-medium">Name</label>
-              <input
-                id="edit-name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                maxLength={120}
-                required
-                className="rounded-lg border border-(--color-border) bg-(--color-bg) px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-(--color-accent)"
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <label htmlFor="edit-date" className="text-sm font-medium">Date (optional)</label>
+              <label htmlFor="edit-date" className="text-sm font-medium">Date</label>
               <input
                 id="edit-date"
                 type="date"

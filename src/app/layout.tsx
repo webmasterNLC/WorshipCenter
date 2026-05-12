@@ -4,7 +4,7 @@ import { inter, notoSans, notoSansTamil, fraunces } from './fonts';
 
 export const metadata: Metadata = {
   title: 'NLC Burgdorf SongDrop',
-  description: 'Worship songs, chords, and setlists for NLC Burgdorf.',
+  description: 'Worship songs, chords, and programs for NLC Burgdorf.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

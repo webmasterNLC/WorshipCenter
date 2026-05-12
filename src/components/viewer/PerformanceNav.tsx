@@ -7,14 +7,14 @@ interface PerformanceNavProps {
   playlistId: string;
   currentIdx: number;
   totalItems: number;
-  playlistName: string;
+  programLabel: string;
 }
 
 export function PerformanceNav({
   playlistId,
   currentIdx,
   totalItems,
-  playlistName,
+  programLabel,
 }: PerformanceNavProps) {
   const hasPrev = currentIdx > 0;
   const hasNext = currentIdx < totalItems - 1;
@@ -40,7 +40,7 @@ export function PerformanceNav({
         href={`/playlists/${playlistId}`}
         className="text-sm text-(--color-muted-fg) hover:text-(--color-fg) truncate max-w-[160px]"
       >
-        ← {playlistName}
+        ← {programLabel}
       </Link>
 
       <span className="text-xs text-(--color-muted-fg) font-mono">

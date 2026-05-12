@@ -5,7 +5,6 @@ import { loadSession } from '@/server/auth/require';
 
 interface PlaylistRow {
   id: string;
-  name: string;
   scheduled_for: string | null;
   owner_name: string | null;
   item_count: number;
@@ -45,11 +44,13 @@ function PlaylistCard({ p }: { p: PlaylistRow }) {
           )}
         </div>
         <div className="min-w-0">
-          <p className="font-display text-lg truncate">{p.name}</p>
+          <p className="font-display text-lg truncate">
+            {date
+              ? `${date.weekday}, ${date.day} ${date.month} ${date.year}`
+              : 'Undated program'}
+          </p>
           <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-(--color-muted-fg)">
-            {p.owner_name && <span>by {p.owner_name}</span>}
             <span>{p.item_count} {p.item_count === 1 ? 'song' : 'songs'}</span>
-            {date && <span className="font-mono">{date.year}</span>}
           </p>
         </div>
         <span className="text-(--color-muted-fg) text-sm">→</span>
@@ -60,7 +61,9 @@ function PlaylistCard({ p }: { p: PlaylistRow }) {
 
 export default async function PlaylistsPage() {
   const [playlists, session] = await Promise.all([listPlaylists(), loadSession()]);
-  const canCreate = session?.profile.role === 'admin' || session?.profile.role === 'leader';
+  // Only admins create programs now.
+  const canCreate = session?.profile.role === 'admin';
+  const isAdmin = canCreate;
 
   const today = todayIso();
   const upcoming: PlaylistRow[] = [];
@@ -70,7 +73,6 @@ export default async function PlaylistsPage() {
   for (const p of playlists) {
     const row: PlaylistRow = {
       id: p.id,
-      name: p.name,
       scheduled_for: p.scheduled_for,
       owner_name: p.owner_name,
       item_count: p.item_count,
@@ -86,7 +88,7 @@ export default async function PlaylistsPage() {
     <div className="grid gap-8 max-w-5xl">
       <header className="grid gap-2">
         <span className="text-xs uppercase tracking-[0.22em] text-(--color-muted-fg)">
-          Setlists
+          Programs
         </span>
         <div className="flex items-end justify-between gap-4">
           <h1 className="font-display-tight text-4xl md:text-5xl">
@@ -98,7 +100,7 @@ export default async function PlaylistsPage() {
               className="flex items-center gap-2 rounded-lg bg-(--color-accent) px-4 py-2 text-sm font-medium text-(--color-accent-fg) hover:opacity-90"
             >
               <Plus className="size-4" aria-hidden />
-              New setlist
+              New program
             </Link>
           )}
         </div>
@@ -107,16 +109,16 @@ export default async function PlaylistsPage() {
       {playlists.length === 0 && (
         <div className="rounded-xl border border-dashed border-(--color-border) p-8 text-center">
           <CalendarDays className="mx-auto size-8 text-(--color-muted-fg)" aria-hidden />
-          <p className="mt-3 font-display text-lg">No setlists yet.</p>
+          <p className="mt-3 font-display text-lg">No programs yet.</p>
           <p className="mt-1 text-sm text-(--color-muted-fg)">
-            {canCreate ? 'Create the first one to plan a service.' : 'A leader will plan the next service soon.'}
+            {canCreate ? 'Create the first one to plan a service.' : 'An admin will plan the next service soon.'}
           </p>
           {canCreate && (
             <Link
               href="/playlists/new"
               className="mt-4 inline-flex items-center gap-2 rounded-lg bg-(--color-accent) px-4 py-2 text-sm font-medium text-(--color-accent-fg) hover:opacity-90"
             >
-              <Plus className="size-4" aria-hidden /> New setlist
+              <Plus className="size-4" aria-hidden /> New program
             </Link>
           )}
         </div>
@@ -152,7 +154,8 @@ export default async function PlaylistsPage() {
         </section>
       )}
 
-      {past.length > 0 && (
+      {/* Past services — admin-only (non-admins get the past hidden by listPlaylists). */}
+      {isAdmin && past.length > 0 && (
         <section className="grid gap-3">
           <h2 className="font-display text-xl flex items-baseline gap-2">
             <span className="numeral text-base">№ III</span>

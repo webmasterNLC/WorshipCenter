@@ -11,7 +11,7 @@ export function SideRail({ session }: { session: Session }) {
   const items: Array<{ href: string; label: string; icon: NavIcon }> = [
     { href: '/home', label: 'Home', icon: Home },
     { href: '/songs', label: 'Songs', icon: Music },
-    { href: '/playlists', label: 'Setlists', icon: ListMusic },
+    { href: '/playlists', label: 'Programs', icon: ListMusic },
     ...(session.profile.role === 'admin'
       ? [{ href: '/admin/users', label: 'Admin', icon: ShieldCheck }]
       : []),

@@ -15,13 +15,13 @@ export function renderPlaylistShareEmail(input: PlaylistShareEmailInput): {
 } {
   const { senderName, playlistName, scheduledFor, message, url } = input;
 
-  const subject = `Setlist shared: ${playlistName}`;
+  const subject = `Program shared: ${playlistName}`;
 
   const dateLabel = scheduledFor ? ` — ${scheduledFor}` : '';
   const optionalMessage = message ? `\n\n${message}` : '';
 
   const text = [
-    `${senderName} shared a setlist with you.`,
+    `${senderName} shared a program with you.`,
     ``,
     `${playlistName}${dateLabel}${optionalMessage}`,
     ``,
@@ -34,12 +34,12 @@ export function renderPlaylistShareEmail(input: PlaylistShareEmailInput): {
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"></head>
 <body style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;line-height:1.5;color:#0f172a">
-  <h2 style="margin:0 0 16px">Setlist shared: ${esc(playlistName)}</h2>
-  <p><strong>${esc(senderName)}</strong> shared a setlist with you.</p>
+  <h2 style="margin:0 0 16px">Program shared: ${esc(playlistName)}</h2>
+  <p><strong>${esc(senderName)}</strong> shared a program with you.</p>
   <p style="font-size:18px;font-weight:600">${esc(playlistName)}${dateLabel ? `<span style="font-weight:400;color:#475569"> ${esc(scheduledFor ?? '')}</span>` : ''}</p>
   ${message ? `<p style="color:#334155">${esc(message)}</p>` : ''}
   <p>
-    <a href="${esc(url)}" style="display:inline-block;background:#b45309;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none">Open setlist</a>
+    <a href="${esc(url)}" style="display:inline-block;background:#b45309;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none">Open program</a>
   </p>
   <p style="color:#475569;font-size:14px">Sign in with your account to view.</p>
 </body></html>
