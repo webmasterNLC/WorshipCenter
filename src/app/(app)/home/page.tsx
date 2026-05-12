@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Music, ListMusic, Plus, Users, ArrowRight, CalendarDays, BellRing } from 'lucide-react';
+import { Music, ListMusic, Plus, Users, ArrowRight, BellRing } from 'lucide-react';
 import { loadSession } from '@/server/auth/require';
 import { getDashboardStats } from '@/server/actions/dashboard';
 import { getMyUpcomingDuties } from '@/server/actions/service';
@@ -40,8 +40,6 @@ export default async function HomePage() {
 
   const canCreatePlaylist = role === 'admin';
   const isAdmin = role === 'admin';
-  const next = stats.nextService;
-  const nextDate = next ? formatServiceDate(next.scheduled_for) : null;
 
   // Group duties by program so multiple-roles-on-same-day stack together.
   const dutiesByPlaylist = new Map<
@@ -90,47 +88,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Next service */}
-      {next && nextDate ? (
-        <Link
-          href={`/playlists/${next.id}`}
-          className="card-lift group grid grid-cols-[auto_1fr_auto] items-center gap-6 rounded-2xl border border-(--color-border) bg-(--color-muted) p-6"
-        >
-          <div className="grid place-items-center rounded-xl border border-(--color-border) bg-(--color-bg) px-4 py-3">
-            <div className="text-[0.65rem] uppercase tracking-[0.22em] text-(--color-muted-fg)">{nextDate.weekday}</div>
-            <div className="numeral text-4xl mt-0.5">{nextDate.day}</div>
-            <div className="text-[0.65rem] uppercase tracking-[0.18em] text-(--color-muted-fg) mt-0.5">{nextDate.month}</div>
-          </div>
-          <div className="min-w-0">
-            <div className="text-xs uppercase tracking-[0.22em] text-(--color-accent) flex items-center gap-2">
-              <CalendarDays className="size-3.5" aria-hidden /> Next program
-            </div>
-            <h2 className="font-display text-2xl mt-1 truncate">
-              {nextDate.weekday}, {nextDate.day} {nextDate.month} {nextDate.year}
-            </h2>
-            <p className="text-sm text-(--color-muted-fg) mt-1">
-              {next.item_count} {next.item_count === 1 ? 'song' : 'songs'}
-            </p>
-          </div>
-          <ArrowRight className="size-5 text-(--color-muted-fg) transition-transform group-hover:translate-x-1 group-hover:text-(--color-accent)" aria-hidden />
-        </Link>
-      ) : (
-        <div className="grid grid-cols-[auto_1fr_auto] items-center gap-6 rounded-2xl border border-dashed border-(--color-border) p-6">
-          <CalendarDays className="size-8 text-(--color-muted-fg)" aria-hidden />
-          <div>
-            <div className="text-xs uppercase tracking-[0.22em] text-(--color-muted-fg)">Next program</div>
-            <p className="font-display text-xl mt-1">No upcoming program scheduled.</p>
-          </div>
-          {canCreatePlaylist && (
-            <Link
-              href="/playlists/new"
-              className="rounded-lg bg-(--color-accent) px-4 py-2 text-sm font-medium text-(--color-accent-fg) hover:opacity-90"
-            >
-              + New program
-            </Link>
-          )}
-        </div>
-      )}
 
       {/* On-duty card — only when the user has upcoming assignments */}
       {dutiesByPlaylist.size > 0 && (
