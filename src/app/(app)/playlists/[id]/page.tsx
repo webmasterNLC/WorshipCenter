@@ -3,15 +3,12 @@ import Link from 'next/link';
 import { Pencil, Play, Send } from 'lucide-react';
 import { getPlaylist } from '@/server/actions/playlists';
 import {
-  assignToService,
-  unassignFromService,
   getServiceAssignments,
-  getRotaCandidates,
   notifyRota,
 } from '@/server/actions/service';
+import { ROTA_ROLE_LABEL, ROTA_ROLES, type RotaRole } from '@/server/actions/service.schemas';
 import { loadSession } from '@/server/auth/require';
 import { runAction } from '@/server/actions/_action-result';
-import { RotaBlock } from '@/components/playlists/RotaBlock';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -44,11 +41,10 @@ export default async function PlaylistPage({ params, searchParams }: PageProps) 
 
   const isAdmin = session?.profile.role === 'admin';
 
-  // Rota data — candidates only loadable by admin now.
+  // Rota is read-only on the detail page — assignment happens in edit mode.
   const assignments = await getServiceAssignments(id);
-  const candidates = isAdmin ? await getRotaCandidates(id) : [];
 
-  // Leader can edit the song list (items) only if admin has assigned them
+  // Leader can open edit (= edit songs) only if admin has assigned them
   // to this program's rota. Viewers never edit.
   const canEditItems =
     isAdmin ||
@@ -150,15 +146,50 @@ export default async function PlaylistPage({ params, searchParams }: PageProps) 
         )}
       </header>
 
-      {/* Rota */}
-      <RotaBlock
-        playlistId={id}
-        assignments={assignments}
-        candidates={candidates}
-        canEdit={isAdmin}
-        assign={assignToService}
-        unassign={unassignFromService}
-      />
+      {/* Rota — read-only on the detail page. Editing is in /edit. */}
+      <section className="grid gap-4 rounded-2xl border border-(--color-border) bg-(--color-muted)/30 p-5">
+        <header className="flex items-baseline justify-between gap-3">
+          <div>
+            <h2 className="font-display text-xl flex items-baseline gap-2">
+              <span className="numeral text-base">№</span>
+              Service rota
+            </h2>
+            <p className="text-xs text-(--color-muted-fg) mt-0.5">
+              {assignments.length} {assignments.length === 1 ? 'assignment' : 'assignments'}
+              {isAdmin ? ' · open Edit to change' : ''}
+            </p>
+          </div>
+        </header>
+        <ul className="grid gap-1.5">
+          {ROTA_ROLES.map((role) => {
+            const filled = assignments.filter((a) => a.role === role);
+            if (filled.length === 0) return null;
+            return (
+              <li
+                key={role}
+                className="grid grid-cols-[8rem_1fr] items-start gap-3 rounded-xl border border-(--color-border) bg-(--color-bg) px-3 py-2"
+              >
+                <div className="text-sm font-medium pt-1">
+                  {ROTA_ROLE_LABEL[role as RotaRole]}
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {filled.map((a) => (
+                    <span
+                      key={a.id}
+                      className="inline-flex items-center gap-1 rounded-full border border-(--color-border) bg-(--color-muted) px-2.5 py-1 text-xs"
+                    >
+                      {a.member_name}
+                    </span>
+                  ))}
+                </div>
+              </li>
+            );
+          })}
+          {assignments.length === 0 && (
+            <li className="text-sm text-(--color-muted-fg)">No one assigned yet.</li>
+          )}
+        </ul>
+      </section>
 
       {/* Items list */}
       <section className="grid gap-3">

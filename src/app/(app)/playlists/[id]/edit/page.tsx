@@ -9,8 +9,15 @@ import {
   savePlaylistVersion,
 } from '@/server/actions/playlists';
 import { listSongs } from '@/server/actions/songs';
+import {
+  assignToService,
+  unassignFromService,
+  getServiceAssignments,
+  getRotaCandidates,
+} from '@/server/actions/service';
 import { requireAdminOrAssignedLeader } from '@/server/auth/require';
 import { PlaylistEditorClient } from '@/components/playlists/PlaylistEditorClient';
+import { RotaBlock } from '@/components/playlists/RotaBlock';
 import type { PlaylistItemData, SongPickerItem } from '@/components/playlists/PlaylistEditorClient';
 
 interface PageProps {
@@ -21,10 +28,18 @@ export default async function PlaylistEditPage({ params }: PageProps) {
   const { id } = await params;
   // Admin OR a leader who is on this program's rota. RLS will also enforce
   // this at the DB layer for item writes; this is just the page-level gate.
-  await requireAdminOrAssignedLeader(id);
+  const session = await requireAdminOrAssignedLeader(id);
+  const isAdmin = session.profile.role === 'admin';
 
-  const [playlist, songs] = await Promise.all([getPlaylist(id), listSongs()]);
+  const [playlist, songs, assignments] = await Promise.all([
+    getPlaylist(id),
+    listSongs(),
+    getServiceAssignments(id),
+  ]);
   if (!playlist) notFound();
+
+  // Rota candidates are admin-only (and only fetched if admin).
+  const candidates = isAdmin ? await getRotaCandidates(id) : [];
 
   // -------------------------------------------------------------------------
   // Inline server actions — passed as props to the client component.
@@ -101,20 +116,32 @@ export default async function PlaylistEditPage({ params }: PageProps) {
   }));
 
   return (
-    <PlaylistEditorClient
-      playlistId={id}
-      initialDate={playlist.scheduled_for ?? ''}
-      initialDesc={playlist.description ?? ''}
-      initialItems={initialItems}
-      allSongs={allSongs}
-      onSaveMeta={saveMeta}
-      onAddSong={addSong}
-      onRemoveItem={removeItem}
-      onUpdateItemTranspose={updateTranspose}
-      onUpdateItemCapo={updateCapo}
-      onUpdateItemNotes={updateNotes}
-      onReorder={reorder}
-      onSaveVersion={saveVersion}
-    />
+    <div className="grid gap-6">
+      {isAdmin && (
+        <RotaBlock
+          playlistId={id}
+          assignments={assignments}
+          candidates={candidates}
+          canEdit={true}
+          assign={assignToService}
+          unassign={unassignFromService}
+        />
+      )}
+      <PlaylistEditorClient
+        playlistId={id}
+        initialDate={playlist.scheduled_for ?? ''}
+        initialDesc={playlist.description ?? ''}
+        initialItems={initialItems}
+        allSongs={allSongs}
+        onSaveMeta={saveMeta}
+        onAddSong={addSong}
+        onRemoveItem={removeItem}
+        onUpdateItemTranspose={updateTranspose}
+        onUpdateItemCapo={updateCapo}
+        onUpdateItemNotes={updateNotes}
+        onReorder={reorder}
+        onSaveVersion={saveVersion}
+      />
+    </div>
   );
 }

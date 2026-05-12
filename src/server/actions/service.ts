@@ -57,17 +57,24 @@ export async function assignToService(
     });
   }
 
-  const { error } = await sb.from('service_assignments').upsert(
-    {
-      playlist_id: parsed.data.playlist_id,
-      role:        parsed.data.role,
-      member_id:   parsed.data.member_id,
-      notes:       parsed.data.notes ?? null,
-      assigned_by: session.profile.id,
-    },
-    { onConflict: 'playlist_id,role,member_id' },
-  );
-  if (error) throw new Error(error.message);
+  // Each member can hold at most one role per program (enforced by
+  // unique(playlist_id, member_id) at the DB layer). A duplicate insert
+  // surfaces as Postgres error 23505 — translate to a friendly message.
+  const { error } = await sb.from('service_assignments').insert({
+    playlist_id: parsed.data.playlist_id,
+    role:        parsed.data.role,
+    member_id:   parsed.data.member_id,
+    notes:       parsed.data.notes ?? null,
+    assigned_by: session.profile.id,
+  });
+  if (error) {
+    if (error.code === '23505') {
+      throw new ValidationError({
+        member_id: ['This member is already assigned to another role on this program.'],
+      });
+    }
+    throw new Error(error.message);
+  }
 
   const sbAdmin = createSupabaseAdminClient();
   await sbAdmin.rpc('write_audit', {
@@ -82,6 +89,7 @@ export async function assignToService(
   });
 
   revalidatePath(`/playlists/${parsed.data.playlist_id}`);
+  revalidatePath(`/playlists/${parsed.data.playlist_id}/edit`);
   revalidatePath('/home');
   return { ok: true };
 }
@@ -116,6 +124,7 @@ export async function unassignFromService(
   });
 
   revalidatePath(`/playlists/${parsed.data.playlist_id}`);
+  revalidatePath(`/playlists/${parsed.data.playlist_id}/edit`);
   revalidatePath('/home');
   return { ok: true };
 }

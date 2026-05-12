@@ -58,12 +58,14 @@ export function RotaBlock({
   for (const role of ROTA_ROLES) byRole.set(role, []);
   for (const a of assignments) byRole.get(a.role)?.push(a);
 
+  // One duty per program: anyone already assigned to ANY role on this
+  // program is hidden from every picker, not just the picker for that
+  // specific role.
+  const allAssignedMemberIds = new Set(assignments.map((a) => a.member_id));
+
   function candidatesFor(role: RotaRole): Candidate[] {
-    const assignedIds = new Set(
-      (byRole.get(role) ?? []).map((a) => a.member_id),
-    );
     return candidates.filter(
-      (c) => c.capabilities.includes(role) && !assignedIds.has(c.id),
+      (c) => c.capabilities.includes(role) && !allAssignedMemberIds.has(c.id),
     );
   }
 
