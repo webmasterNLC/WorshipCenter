@@ -1,75 +1,99 @@
-import { redirect } from 'next/navigation';
-import { User, Mail, KeyRound, ShieldCheck } from 'lucide-react';
-import { loadSession } from '@/server/auth/require';
+import { notFound, redirect } from 'next/navigation';
+import Link from 'next/link';
+import { ArrowLeft, User, Mail, KeyRound, Trash2 } from 'lucide-react';
 import {
-  updateMyProfile,
-  updateMyEmail,
-  updateMyPassword,
+  adminGetUserDetail,
+  adminUpdateUserDisplayName,
+  adminUpdateUserEmail,
+  adminResetUserPassword,
 } from '@/server/actions/profile';
 import { runAction } from '@/server/actions/_action-result';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { loadSession } from '@/server/auth/require';
 
 interface PageProps {
+  params: Promise<{ id: string }>;
   searchParams: Promise<{ ok?: string; err?: string }>;
 }
 
 const BANNERS: Record<string, { tone: 'ok' | 'err'; text: string }> = {
-  'name-saved':    { tone: 'ok',  text: 'Display name updated.' },
-  'email-sent':    { tone: 'ok',  text: 'Confirmation email sent — click the link in your inbox to finish the change.' },
-  'pw-saved':      { tone: 'ok',  text: 'Password updated.' },
-  'name-fail':     { tone: 'err', text: 'Could not update display name. Please check the value and try again.' },
-  'email-fail':    { tone: 'err', text: 'Could not update email. Please check the address and try again.' },
-  'pw-fail':       { tone: 'err', text: 'Could not update password — must be at least 12 characters.' },
+  'name-saved':  { tone: 'ok',  text: 'Display name updated.' },
+  'email-saved': { tone: 'ok',  text: 'Email updated immediately (no confirmation sent).' },
+  'pw-saved':    { tone: 'ok',  text: 'Password updated. Tell the user the new credentials securely.' },
+  'name-fail':   { tone: 'err', text: 'Could not update display name.' },
+  'email-fail':  { tone: 'err', text: 'Could not update email — check the address and try again.' },
+  'pw-fail':     { tone: 'err', text: 'Could not update password — must be at least 12 characters.' },
 };
 
-export default async function MePage({ searchParams }: PageProps) {
-  const session = await loadSession();
-  if (!session) return null;
-
-  const sb = await createSupabaseServerClient();
-  const { data: { user } } = await sb.auth.getUser();
-  const currentEmail = user?.email ?? '';
-
+export default async function AdminUserDetailPage({ params, searchParams }: PageProps) {
+  const { id } = await params;
   const { ok, err } = await searchParams;
   const banner = ok ? BANNERS[ok] : err ? BANNERS[err] : null;
+
+  const [user, session] = await Promise.all([
+    adminGetUserDetail(id),
+    loadSession(),
+  ]);
+  if (!user) notFound();
+
+  const isSelf = session?.profile.id === id;
 
   async function saveDisplayName(form: FormData) {
     'use server';
     const result = await runAction(() =>
-      updateMyProfile({ display_name: String(form.get('display_name') ?? '') }),
+      adminUpdateUserDisplayName({
+        user_id: id,
+        display_name: String(form.get('display_name') ?? ''),
+      }),
     );
-    redirect(`/me?${result.ok ? 'ok=name-saved' : 'err=name-fail'}`);
+    redirect(`/admin/users/${id}?${result.ok ? 'ok=name-saved' : 'err=name-fail'}`);
   }
 
   async function saveEmail(form: FormData) {
     'use server';
     const result = await runAction(() =>
-      updateMyEmail({ email: String(form.get('email') ?? '') }),
+      adminUpdateUserEmail({
+        user_id: id,
+        email: String(form.get('email') ?? ''),
+      }),
     );
-    redirect(`/me?${result.ok ? 'ok=email-sent' : 'err=email-fail'}`);
+    redirect(`/admin/users/${id}?${result.ok ? 'ok=email-saved' : 'err=email-fail'}`);
   }
 
   async function savePassword(form: FormData) {
     'use server';
     const result = await runAction(() =>
-      updateMyPassword({ password: String(form.get('password') ?? '') }),
+      adminResetUserPassword({
+        user_id: id,
+        password: String(form.get('password') ?? ''),
+      }),
     );
-    redirect(`/me?${result.ok ? 'ok=pw-saved' : 'err=pw-fail'}`);
+    redirect(`/admin/users/${id}?${result.ok ? 'ok=pw-saved' : 'err=pw-fail'}`);
   }
 
   return (
     <div className="grid gap-6 max-w-2xl">
 
       <header className="grid gap-2">
-        <span className="text-xs uppercase tracking-[0.22em] text-(--color-muted-fg)">
-          Account
-        </span>
-        <h1 className="font-display-tight text-4xl md:text-5xl">
-          Your <em className="text-(--color-accent) not-italic">profile</em>.
+        <Link
+          href="/admin/users"
+          className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.18em] text-(--color-muted-fg) hover:text-(--color-accent) w-fit"
+        >
+          <ArrowLeft className="size-3.5" aria-hidden />
+          Back to members
+        </Link>
+        <h1 className="font-display-tight text-3xl md:text-4xl mt-1">
+          {user.display_name}
+          {isSelf && (
+            <span className="ml-3 text-xs uppercase tracking-[0.18em] text-(--color-accent) align-middle">
+              You
+            </span>
+          )}
         </h1>
-        <p className="text-sm text-(--color-muted-fg) flex items-center gap-1.5 mt-1">
-          <ShieldCheck className="size-3.5" aria-hidden />
-          Signed in as <span className="font-medium capitalize">{session.profile.role}</span>
+        <p className="text-sm text-(--color-muted-fg) capitalize">
+          {user.role} · joined {new Date(user.created_at).toLocaleDateString()}
+          {user.last_sign_in_at && (
+            <> · last seen {new Date(user.last_sign_in_at).toLocaleDateString()}</>
+          )}
         </p>
       </header>
 
@@ -91,10 +115,7 @@ export default async function MePage({ searchParams }: PageProps) {
           <span className="grid size-9 place-items-center rounded-lg bg-(--color-muted) text-(--color-accent)">
             <User className="size-4" aria-hidden />
           </span>
-          <div>
-            <h2 className="font-display text-lg">Display name</h2>
-            <p className="text-xs text-(--color-muted-fg)">How others on the band see you.</p>
-          </div>
+          <h2 className="font-display text-lg">Display name</h2>
         </div>
         <form action={saveDisplayName} className="grid grid-cols-[1fr_auto] gap-2">
           <input
@@ -102,7 +123,7 @@ export default async function MePage({ searchParams }: PageProps) {
             name="display_name"
             required
             maxLength={80}
-            defaultValue={session.profile.display_name}
+            defaultValue={user.display_name}
             className="rounded-lg border border-(--color-border) bg-(--color-bg) px-3 py-2 text-sm"
           />
           <button
@@ -121,9 +142,9 @@ export default async function MePage({ searchParams }: PageProps) {
             <Mail className="size-4" aria-hidden />
           </span>
           <div>
-            <h2 className="font-display text-lg">Email address</h2>
+            <h2 className="font-display text-lg">Email</h2>
             <p className="text-xs text-(--color-muted-fg)">
-              Changing this sends a confirmation link to the new address — the change only takes effect after you click it.
+              Admin override — set immediately, no confirmation email sent.
             </p>
           </div>
         </div>
@@ -133,7 +154,7 @@ export default async function MePage({ searchParams }: PageProps) {
             name="email"
             required
             maxLength={320}
-            defaultValue={currentEmail}
+            defaultValue={user.email ?? ''}
             className="rounded-lg border border-(--color-border) bg-(--color-bg) px-3 py-2 text-sm"
           />
           <button
@@ -143,6 +164,11 @@ export default async function MePage({ searchParams }: PageProps) {
             Change
           </button>
         </form>
+        {user.email_confirmed_at == null && (
+          <p className="text-xs text-(--color-danger)">
+            Email not yet confirmed.
+          </p>
+        )}
       </section>
 
       {/* Password */}
@@ -152,31 +178,36 @@ export default async function MePage({ searchParams }: PageProps) {
             <KeyRound className="size-4" aria-hidden />
           </span>
           <div>
-            <h2 className="font-display text-lg">Password</h2>
+            <h2 className="font-display text-lg">Password reset</h2>
             <p className="text-xs text-(--color-muted-fg)">
-              At least 12 characters. You stay signed in after changing.
+              Set a new password for this user. Existing sessions stay valid until they expire.
             </p>
           </div>
         </div>
         <form action={savePassword} className="grid grid-cols-[1fr_auto] gap-2">
           <input
-            type="password"
+            type="text"
             name="password"
             required
             minLength={12}
             maxLength={128}
-            placeholder="New password"
-            autoComplete="new-password"
-            className="rounded-lg border border-(--color-border) bg-(--color-bg) px-3 py-2 text-sm"
+            placeholder="New password (≥ 12 characters)"
+            autoComplete="off"
+            className="rounded-lg border border-(--color-border) bg-(--color-bg) px-3 py-2 text-sm font-mono"
           />
           <button
             type="submit"
-            className="rounded-lg border border-(--color-border) px-4 py-2 text-sm font-medium hover:border-(--color-accent) hover:text-(--color-accent)"
+            className="rounded-lg border border-(--color-danger)/40 text-(--color-danger) px-4 py-2 text-sm font-medium hover:bg-(--color-danger)/10"
           >
-            Update
+            Reset
           </button>
         </form>
       </section>
+
+      <p className="text-xs text-(--color-muted-fg) flex items-center gap-1.5">
+        <Trash2 className="size-3" aria-hidden />
+        To remove a member entirely, ask Supabase support or delete via Dashboard → Auth → Users.
+      </p>
     </div>
   );
 }

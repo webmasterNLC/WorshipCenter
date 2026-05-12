@@ -1,4 +1,5 @@
-import { Mail, ShieldCheck, UserPlus, X } from 'lucide-react';
+import Link from 'next/link';
+import { Mail, ShieldCheck, UserPlus, X, Settings } from 'lucide-react';
 import { loadSession } from '@/server/auth/require';
 import {
   adminSetUserRole,
@@ -205,34 +206,43 @@ export default async function AdminMembersPage() {
                   </div>
                 </div>
 
-                <form
-                  action={changeRoleAction}
-                  className="flex items-end gap-2 md:flex-col md:items-stretch"
-                >
-                  <input type="hidden" name="user_id" value={m.id} />
-                  <label className="grid gap-1 text-xs">
-                    <span className="uppercase tracking-[0.18em] text-(--color-muted-fg)">
-                      Role
-                    </span>
-                    <select
-                      name="role"
-                      defaultValue={m.role}
-                      disabled={isSelf}
-                      className="rounded-lg border border-(--color-border) bg-(--color-bg) px-3 py-2 text-sm disabled:opacity-50"
-                    >
-                      <option value="admin">Admin</option>
-                      <option value="leader">Leader</option>
-                      <option value="viewer">Viewer</option>
-                    </select>
-                  </label>
-                  <button
-                    type="submit"
-                    disabled={isSelf}
-                    className="rounded-lg bg-(--color-accent) px-3 py-2 text-xs font-medium text-(--color-accent-fg) hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+                <div className="flex flex-col items-stretch gap-2">
+                  <form
+                    action={changeRoleAction}
+                    className="flex items-end gap-2 md:flex-col md:items-stretch"
                   >
-                    Save role
-                  </button>
-                </form>
+                    <input type="hidden" name="user_id" value={m.id} />
+                    <label className="grid gap-1 text-xs">
+                      <span className="uppercase tracking-[0.18em] text-(--color-muted-fg)">
+                        Role
+                      </span>
+                      <select
+                        name="role"
+                        defaultValue={m.role}
+                        disabled={isSelf}
+                        className="rounded-lg border border-(--color-border) bg-(--color-bg) px-3 py-2 text-sm disabled:opacity-50"
+                      >
+                        <option value="admin">Admin</option>
+                        <option value="leader">Leader</option>
+                        <option value="viewer">Viewer</option>
+                      </select>
+                    </label>
+                    <button
+                      type="submit"
+                      disabled={isSelf}
+                      className="rounded-lg bg-(--color-accent) px-3 py-2 text-xs font-medium text-(--color-accent-fg) hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      Save role
+                    </button>
+                  </form>
+                  <Link
+                    href={`/admin/users/${m.id}`}
+                    className="flex items-center justify-center gap-1.5 rounded-lg border border-(--color-border) px-3 py-2 text-xs text-(--color-muted-fg) hover:border-(--color-accent) hover:text-(--color-accent)"
+                  >
+                    <Settings className="size-3.5" aria-hidden />
+                    Manage account
+                  </Link>
+                </div>
               </li>
             );
           })}

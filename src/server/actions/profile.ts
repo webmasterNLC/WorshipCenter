@@ -11,6 +11,11 @@ import {
   updateMyProfileInput,
   adminSetUserRoleInput,
   toggleCapabilityInput,
+  updateMyEmailInput,
+  updateMyPasswordInput,
+  adminUpdateUserDisplayNameInput,
+  adminUpdateUserEmailInput,
+  adminResetUserPasswordInput,
   type Capability,
 } from './profile.schemas';
 
@@ -137,4 +142,177 @@ export async function listMembersForAdmin(): Promise<MemberWithCapabilities[]> {
     created_at: p.created_at,
     capabilities: capsByProfile.get(p.id) ?? [],
   }));
+}
+
+// ===========================================================================
+// Self-service account actions
+// ===========================================================================
+
+export async function updateMyEmail(rawInput: z.input<typeof updateMyEmailInput>) {
+  const session = await requireRole('admin', 'leader', 'viewer');
+  const parsed = updateMyEmailInput.safeParse(rawInput);
+  if (!parsed.success) throw new ValidationError(parsed.error.flatten());
+
+  // Supabase sends a confirmation email to the NEW address; the change isn't
+  // active until that link is clicked. With "secure email change" enabled in
+  // the Supabase dashboard, an email is also sent to the OLD address.
+  const sb = await createSupabaseServerClient();
+  const { error } = await sb.auth.updateUser({ email: parsed.data.email });
+  if (error) throw new Error(error.message);
+
+  const sbAdmin = createSupabaseAdminClient();
+  await sbAdmin.rpc('write_audit', {
+    p_actor: session.profile.id,
+    p_action: 'profile.email_change_requested',
+    p_target_type: 'profile',
+    p_target_id: session.profile.id,
+    p_metadata: { new_email: parsed.data.email },
+  });
+
+  revalidatePath('/me');
+  return { ok: true };
+}
+
+export async function updateMyPassword(rawInput: z.input<typeof updateMyPasswordInput>) {
+  const session = await requireRole('admin', 'leader', 'viewer');
+  const parsed = updateMyPasswordInput.safeParse(rawInput);
+  if (!parsed.success) throw new ValidationError(parsed.error.flatten());
+
+  const sb = await createSupabaseServerClient();
+  const { error } = await sb.auth.updateUser({ password: parsed.data.password });
+  if (error) throw new Error(error.message);
+
+  const sbAdmin = createSupabaseAdminClient();
+  await sbAdmin.rpc('write_audit', {
+    p_actor: session.profile.id,
+    p_action: 'profile.password_change',
+    p_target_type: 'profile',
+    p_target_id: session.profile.id,
+    p_metadata: {},
+  });
+
+  revalidatePath('/me');
+  return { ok: true };
+}
+
+// ===========================================================================
+// Admin-managed account actions
+// ===========================================================================
+
+export async function adminUpdateUserDisplayName(
+  rawInput: z.input<typeof adminUpdateUserDisplayNameInput>,
+) {
+  const session = await requireRole('admin');
+  const parsed = adminUpdateUserDisplayNameInput.safeParse(rawInput);
+  if (!parsed.success) throw new ValidationError(parsed.error.flatten());
+
+  const sb = await createSupabaseServerClient();
+  const { error } = await sb
+    .from('profiles')
+    .update({ display_name: parsed.data.display_name })
+    .eq('id', parsed.data.user_id);
+  if (error) throw new Error(error.message);
+
+  const sbAdmin = createSupabaseAdminClient();
+  await sbAdmin.rpc('write_audit', {
+    p_actor: session.profile.id,
+    p_action: 'profile.display_name_change',
+    p_target_type: 'profile',
+    p_target_id: parsed.data.user_id,
+    p_metadata: { new_display_name: parsed.data.display_name },
+  });
+
+  revalidatePath('/admin/users');
+  revalidatePath(`/admin/users/${parsed.data.user_id}`);
+  return { ok: true };
+}
+
+export async function adminUpdateUserEmail(
+  rawInput: z.input<typeof adminUpdateUserEmailInput>,
+) {
+  const session = await requireRole('admin');
+  const parsed = adminUpdateUserEmailInput.safeParse(rawInput);
+  if (!parsed.success) throw new ValidationError(parsed.error.flatten());
+
+  // email_confirm: true skips the confirmation flow — admin sets it directly.
+  const sbAdmin = createSupabaseAdminClient();
+  const { error } = await sbAdmin.auth.admin.updateUserById(parsed.data.user_id, {
+    email: parsed.data.email,
+    email_confirm: true,
+  });
+  if (error) throw new Error(error.message);
+
+  await sbAdmin.rpc('write_audit', {
+    p_actor: session.profile.id,
+    p_action: 'profile.admin_email_change',
+    p_target_type: 'profile',
+    p_target_id: parsed.data.user_id,
+    p_metadata: { new_email: parsed.data.email },
+  });
+
+  revalidatePath('/admin/users');
+  revalidatePath(`/admin/users/${parsed.data.user_id}`);
+  return { ok: true };
+}
+
+export async function adminResetUserPassword(
+  rawInput: z.input<typeof adminResetUserPasswordInput>,
+) {
+  const session = await requireRole('admin');
+  const parsed = adminResetUserPasswordInput.safeParse(rawInput);
+  if (!parsed.success) throw new ValidationError(parsed.error.flatten());
+
+  const sbAdmin = createSupabaseAdminClient();
+  const { error } = await sbAdmin.auth.admin.updateUserById(parsed.data.user_id, {
+    password: parsed.data.password,
+  });
+  if (error) throw new Error(error.message);
+
+  await sbAdmin.rpc('write_audit', {
+    p_actor: session.profile.id,
+    p_action: 'profile.admin_password_reset',
+    p_target_type: 'profile',
+    p_target_id: parsed.data.user_id,
+    p_metadata: {},
+  });
+
+  revalidatePath(`/admin/users/${parsed.data.user_id}`);
+  return { ok: true };
+}
+
+export interface AdminUserDetail {
+  id: string;
+  display_name: string;
+  role: 'admin' | 'leader' | 'viewer';
+  created_at: string;
+  email: string | null;
+  email_confirmed_at: string | null;
+  last_sign_in_at: string | null;
+  capabilities: Capability[];
+}
+
+export async function adminGetUserDetail(userId: string): Promise<AdminUserDetail | null> {
+  await requireRole('admin');
+
+  const sb = createSupabaseAdminClient();
+  const [profileRes, capsRes, userRes] = await Promise.all([
+    sb.from('profiles').select('id, display_name, role, created_at').eq('id', userId).maybeSingle(),
+    sb.from('profile_capabilities').select('capability').eq('profile_id', userId),
+    sb.auth.admin.getUserById(userId),
+  ]);
+
+  if (profileRes.error) throw new Error(profileRes.error.message);
+  if (capsRes.error)    throw new Error(capsRes.error.message);
+  if (!profileRes.data) return null;
+
+  return {
+    id: profileRes.data.id,
+    display_name: profileRes.data.display_name,
+    role: profileRes.data.role as 'admin' | 'leader' | 'viewer',
+    created_at: profileRes.data.created_at,
+    email: userRes.data.user?.email ?? null,
+    email_confirmed_at: userRes.data.user?.email_confirmed_at ?? null,
+    last_sign_in_at: userRes.data.user?.last_sign_in_at ?? null,
+    capabilities: (capsRes.data ?? []).map((c) => c.capability as Capability),
+  };
 }
