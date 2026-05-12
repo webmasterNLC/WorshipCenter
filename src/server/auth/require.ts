@@ -1,6 +1,7 @@
 // Pure logic for role-gating, with the Supabase-bound session loader injected.
 // The `requireRole` helper exported by default uses the real loader.
 import 'server-only';
+import { cache } from 'react';
 import { UnauthorizedError, ForbiddenError, NotFoundError } from './errors';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
@@ -33,26 +34,31 @@ export function makeRequireRole(loader: SessionLoader) {
   };
 }
 
-// Default loader — talks to Supabase via the request-scoped server client.
+// React's `cache()` scopes the result to a single request. Without it,
+// layout → page → server-action chains each hit auth.getUser() + profiles
+// SELECT independently (3-5× per request). With it: one auth round-trip
+// and one profile lookup per request, shared across every callsite.
+const loadSessionCached = cache(async (): Promise<Session | null> => {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id, display_name, role, created_at')
+    .eq('id', user.id)
+    .single();
+  if (!profile) return null;
+  return { user: { id: user.id }, profile: profile as Profile };
+});
+
 const defaultLoader: SessionLoader = {
-  async loadSession() {
-    const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return null;
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id, display_name, role, created_at')
-      .eq('id', user.id)
-      .single();
-    if (!profile) return null;
-    return { user: { id: user.id }, profile: profile as Profile };
-  },
+  loadSession: loadSessionCached,
 };
 
 export const requireRole = makeRequireRole(defaultLoader);
-export const loadSession = defaultLoader.loadSession.bind(defaultLoader);
+export const loadSession = loadSessionCached;
 
 /**
  * Requires the caller to be a band member, then verifies they own the playlist
