@@ -31,10 +31,16 @@
 ----------------------------------------------------------------------
 -- 1. The hook function — called by gotrue at JWT mint time.
 ----------------------------------------------------------------------
+-- SECURITY DEFINER is required: gotrue calls this function as the
+-- supabase_auth_admin role, which has no SELECT privilege on
+-- public.profiles. As DEFINER the function runs with the owner's
+-- (postgres) privileges and can read the table. Safe because the
+-- function only reads its own narrow slice and writes nothing.
 create or replace function public.custom_access_token_hook(event jsonb)
 returns jsonb
 language plpgsql
 stable
+security definer
 set search_path = public
 as $$
 declare
