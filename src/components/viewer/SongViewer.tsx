@@ -1,5 +1,7 @@
 'use client';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import Link from 'next/link';
+import { Pencil } from 'lucide-react';
 import { transposeChordPro, detectKeyAccidental, transposeKey } from '@/lib/chordpro';
 import { renderToBlocks } from '@/lib/chordpro';
 import { ChordLine } from './ChordLine';
@@ -40,6 +42,8 @@ interface SongViewerProps {
   initialSemitones?: number;
   /** Optional navigation bar rendered above the sticky header. */
   navigationSlot?: React.ReactNode;
+  /** If set, renders an Edit pencil button in the sticky header that links here. */
+  editHref?: string;
 }
 
 function readStoredFontStep(): number {
@@ -52,7 +56,7 @@ function readStoredFontStep(): number {
   return 1;
 }
 
-export function SongViewer({ song, initialSemitones = 0, navigationSlot }: SongViewerProps) {
+export function SongViewer({ song, initialSemitones = 0, navigationSlot, editHref }: SongViewerProps) {
   const [semitones, setSemitones] = useState(initialSemitones);
   const [fontStep, setFontStep] = useState(readStoredFontStep);
   const [autoScroll, setAutoScroll] = useState(false);
@@ -204,6 +208,17 @@ export function SongViewer({ song, initialSemitones = 0, navigationSlot }: SongV
           className="size-8 rounded-full border border-(--color-border) flex items-center justify-center text-xs hover:bg-(--color-muted)"
           onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }}
         >⛶</button>
+
+        {editHref && (
+          <Link
+            href={editHref}
+            aria-label="Edit song"
+            onClick={(e) => e.stopPropagation()}
+            className="size-8 rounded-full border border-(--color-border) flex items-center justify-center text-(--color-muted-fg) hover:border-(--color-accent) hover:text-(--color-accent) transition-colors"
+          >
+            <Pencil className="size-3.5" aria-hidden />
+          </Link>
+        )}
       </header>
 
       {/* Language switcher (only shown when 2+ translations exist) */}

@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { getSong } from '@/server/actions/songs';
+import { loadSession } from '@/server/auth/require';
 import { SongViewer } from '@/components/viewer/SongViewer';
 
 interface PageProps {
@@ -8,7 +9,13 @@ interface PageProps {
 
 export default async function SongPage({ params }: PageProps) {
   const { id } = await params;
-  const song = await getSong(id);
+  const [song, session] = await Promise.all([getSong(id), loadSession()]);
   if (!song) notFound();
-  return <SongViewer song={song} />;
+  const canEdit = session?.profile.role === 'admin';
+  return (
+    <SongViewer
+      song={song}
+      {...(canEdit ? { editHref: `/songs/${id}/edit` } : {})}
+    />
+  );
 }
