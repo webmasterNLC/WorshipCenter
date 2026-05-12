@@ -1,11 +1,12 @@
 import { redirect } from 'next/navigation';
-import { User, Mail, KeyRound, ShieldCheck } from 'lucide-react';
+import { User, Mail, KeyRound, ShieldCheck, LogOut } from 'lucide-react';
 import { loadSession } from '@/server/auth/require';
 import {
   updateMyProfile,
   updateMyEmail,
   updateMyPassword,
 } from '@/server/actions/profile';
+import { signOutAction } from '@/server/actions/auth';
 import { runAction } from '@/server/actions/_action-result';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
@@ -141,6 +142,30 @@ export default async function MePage({ searchParams }: PageProps) {
             className="rounded-lg border border-(--color-border) px-4 py-2 text-sm font-medium hover:border-(--color-accent) hover:text-(--color-accent)"
           >
             Change
+          </button>
+        </form>
+      </section>
+
+      {/* Sign out — placed before password so users find the exit fast.
+          Yes, intentionally above sensitive forms; the rail also has it. */}
+      <section className="flex items-center justify-between rounded-2xl border border-(--color-border) p-5">
+        <div className="flex items-center gap-3">
+          <span className="grid size-9 place-items-center rounded-lg bg-(--color-muted) text-(--color-muted-fg)">
+            <LogOut className="size-4" aria-hidden />
+          </span>
+          <div>
+            <h2 className="font-display text-lg">Sign out</h2>
+            <p className="text-xs text-(--color-muted-fg)">
+              End this session on this device.
+            </p>
+          </div>
+        </div>
+        <form action={signOutAction}>
+          <button
+            type="submit"
+            className="rounded-lg border border-(--color-border) px-4 py-2 text-sm font-medium hover:border-(--color-danger) hover:text-(--color-danger) transition-colors"
+          >
+            Sign out
           </button>
         </form>
       </section>
