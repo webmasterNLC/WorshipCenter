@@ -9,9 +9,8 @@ export function TopBar({ session }: { session: Session }) {
         <span className="font-display-tight text-xl">Song</span>
         <span className="font-display-tight text-xl italic text-(--color-accent)">drop</span>
       </Link>
-      <span className="hidden md:block text-xs uppercase tracking-[0.22em] text-(--color-muted-fg)">
-        NLC Burgdorf · Worship band
-      </span>
+      {/* Desktop spacer — keeps the right-hand controls aligned. */}
+      <span className="hidden md:block" />
       <div className="flex items-center gap-3">
         <ThemeToggle />
         <Link
