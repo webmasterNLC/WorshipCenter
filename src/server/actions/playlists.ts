@@ -49,7 +49,6 @@ export interface PlaylistItemRow {
   song_id: string;
   position: number;
   transpose_semitones: number;
-  capo: number | null;
   performance_notes: string | null;
   song: {
     id: string;
@@ -266,7 +265,7 @@ export async function getPlaylist(id: string): Promise<PlaylistDetail | null> {
   const { data: items, error: itemsErr } = await sb
     .from('playlist_items')
     .select(
-      'id, playlist_id, song_id, position, transpose_semitones, capo, performance_notes, song:songs(id, title, language, original_key, bpm, time_signature, body_chordpro, notes)',
+      'id, playlist_id, song_id, position, transpose_semitones, performance_notes, song:songs(id, title, language, original_key, bpm, time_signature, body_chordpro, notes)',
     )
     .eq('playlist_id', id)
     .order('position', { ascending: true });
@@ -304,7 +303,6 @@ export async function getPlaylist(id: string): Promise<PlaylistDetail | null> {
       song_id: item.song_id,
       position: item.position,
       transpose_semitones: item.transpose_semitones ?? 0,
-      capo: item.capo ?? null,
       performance_notes: item.performance_notes ?? null,
       song: song ?? null,
     };
@@ -350,10 +348,9 @@ export async function addSongToPlaylist(rawInput: z.input<typeof addSongInput>) 
       song_id: parsed.data.song_id,
       position: nextPosition,
       transpose_semitones: parsed.data.transpose_semitones,
-      capo: parsed.data.capo ?? null,
       performance_notes: parsed.data.performance_notes ?? null,
     })
-    .select('id, playlist_id, song_id, position, transpose_semitones, capo, performance_notes')
+    .select('id, playlist_id, song_id, position, transpose_semitones, performance_notes')
     .single();
 
   if (error || !data) throw new Error(error?.message ?? 'insert failed');
@@ -456,7 +453,6 @@ export async function updatePlaylistItem(rawInput: z.input<typeof updateItemInpu
   if (parsed.data.transpose_semitones !== undefined) {
     updates.transpose_semitones = parsed.data.transpose_semitones;
   }
-  if (parsed.data.capo !== undefined) updates.capo = parsed.data.capo;
   if (parsed.data.performance_notes !== undefined) {
     updates.performance_notes = parsed.data.performance_notes;
   }

@@ -68,11 +68,6 @@ export default async function PlaylistEditPage({ params }: PageProps) {
     await updatePlaylistItem({ id: itemId, transpose_semitones: semitones });
   }
 
-  async function updateCapo(itemId: string, capo: number | null) {
-    'use server';
-    await updatePlaylistItem({ id: itemId, capo });
-  }
-
   async function updateNotes(itemId: string, notes: string | null) {
     'use server';
     await updatePlaylistItem({ id: itemId, performance_notes: notes });
@@ -94,7 +89,6 @@ export default async function PlaylistEditPage({ params }: PageProps) {
     song_id: item.song_id,
     position: item.position,
     transpose_semitones: item.transpose_semitones,
-    capo: item.capo,
     performance_notes: item.performance_notes,
     song: item.song
       ? {
@@ -137,7 +131,6 @@ export default async function PlaylistEditPage({ params }: PageProps) {
         onAddSong={addSong}
         onRemoveItem={removeItem}
         onUpdateItemTranspose={updateTranspose}
-        onUpdateItemCapo={updateCapo}
         onUpdateItemNotes={updateNotes}
         onReorder={reorder}
         onSaveVersion={saveVersion}

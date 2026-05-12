@@ -243,9 +243,6 @@ export default async function PlaylistPage({ params, searchParams }: PageProps) 
                             {transposeLabel}
                           </span>
                         )}
-                        {item.capo != null && item.capo > 0 && (
-                          <span>capo {item.capo}</span>
-                        )}
                         {item.performance_notes && (
                           <span className="truncate max-w-[200px] italic">
                             {item.performance_notes}

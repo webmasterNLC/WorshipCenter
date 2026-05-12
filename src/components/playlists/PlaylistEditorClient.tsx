@@ -14,7 +14,6 @@ export interface PlaylistItemData {
   song_id: string;
   position: number;
   transpose_semitones: number;
-  capo: number | null;
   performance_notes: string | null;
   song: {
     id: string;
@@ -44,7 +43,6 @@ export interface PlaylistEditorClientProps {
   onAddSong: (songId: string) => Promise<void>;
   onRemoveItem: (itemId: string) => Promise<void>;
   onUpdateItemTranspose: (itemId: string, semitones: number) => Promise<void>;
-  onUpdateItemCapo: (itemId: string, capo: number | null) => Promise<void>;
   onUpdateItemNotes: (itemId: string, notes: string | null) => Promise<void>;
   onReorder: (orderedIds: string[]) => Promise<void>;
   onSaveVersion: () => Promise<void>;
@@ -63,7 +61,6 @@ export function PlaylistEditorClient({
   onAddSong,
   onRemoveItem,
   onUpdateItemTranspose,
-  onUpdateItemCapo,
   onUpdateItemNotes,
   onReorder,
   onSaveVersion,
@@ -99,7 +96,6 @@ export function PlaylistEditorClient({
         song_id: songId,
         position: items.length,
         transpose_semitones: 0,
-        capo: null,
         performance_notes: null,
         song: { id: song.id, title: song.title, language: song.language, original_key: song.original_key, bpm: song.bpm ?? null },
       };
@@ -147,11 +143,6 @@ export function PlaylistEditorClient({
   async function handleTransposeChange(item: PlaylistItemData, val: number) {
     setItems((prev) => prev.map((it) => it.id === item.id ? { ...it, transpose_semitones: val } : it));
     await runAction(() => onUpdateItemTranspose(item.id, val));
-  }
-
-  async function handleCapoChange(item: PlaylistItemData, val: number | null) {
-    setItems((prev) => prev.map((it) => it.id === item.id ? { ...it, capo: val } : it));
-    await runAction(() => onUpdateItemCapo(item.id, val));
   }
 
   async function handleNotesBlur(item: PlaylistItemData, val: string) {
@@ -309,23 +300,6 @@ export function PlaylistEditorClient({
                             {SEMITONE_OPTIONS.map((n) => (
                               <option key={n} value={n}>
                                 {n === 0 ? 'Original' : n > 0 ? `+${n}` : n}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <label className="flex items-center gap-1.5">
-                          <span className="text-xs text-(--color-muted-fg)">Capo</span>
-                          <select
-                            value={item.capo ?? 0}
-                            onChange={(e) => {
-                              const v = Number(e.target.value);
-                              handleCapoChange(item, v === 0 ? null : v);
-                            }}
-                            className="rounded border border-(--color-border) bg-(--color-bg) px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-(--color-accent)"
-                          >
-                            {Array.from({ length: 12 }, (_, i) => (
-                              <option key={i} value={i}>
-                                {i === 0 ? 'No capo' : `Capo ${i}`}
                               </option>
                             ))}
                           </select>

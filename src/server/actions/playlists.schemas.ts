@@ -16,7 +16,6 @@ export const addSongInput = z.object({
   playlist_id: z.string().uuid(),
   song_id: z.string().uuid(),
   transpose_semitones: z.number().int().min(-12).max(12).default(0),
-  capo: z.number().int().min(0).max(11).optional(),
   performance_notes: z.string().max(2000).optional(),
 });
 export type AddSongInput = z.infer<typeof addSongInput>;
@@ -24,7 +23,6 @@ export type AddSongInput = z.infer<typeof addSongInput>;
 export const updateItemInput = z.object({
   id: z.string().uuid(),
   transpose_semitones: z.number().int().min(-12).max(12).optional(),
-  capo: z.number().int().min(0).max(11).optional().nullable(),
   performance_notes: z.string().max(2000).optional().nullable(),
 });
 export type UpdateItemInput = z.infer<typeof updateItemInput>;
