@@ -115,8 +115,10 @@ export function chordsToChordPro(body: string): string {
 /** Pull the chord <pre> block out of the page HTML. */
 function extractChordPre(html: string): string | null {
   // The page has tabbed content; the "Chords" tab's next <pre> holds the body.
+  // Note: `.` doesn't match newlines in JS by default, so the gap between the
+  // tab title and the <pre> must use [\s\S] (or the `s` flag) to span lines.
   const m = html.match(
-    /class="tabtitle"[^>]*>\s*Chords\s*<.*?<pre[^>]*>([\s\S]*?)<\/pre>/,
+    /class="tabtitle"[^>]*>\s*Chords\s*<[\s\S]*?<pre[^>]*>([\s\S]*?)<\/pre>/,
   );
   if (!m) return null;
   return decodeEntities(m[1]!.replace(/<[^>]+>/g, ''));
