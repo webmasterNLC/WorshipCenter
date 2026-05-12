@@ -87,13 +87,10 @@ export default async function PlaylistsPage() {
   return (
     <div className="grid gap-8 max-w-5xl">
       <header className="grid gap-2">
-        <span className="text-xs uppercase tracking-[0.22em] text-(--color-muted-fg)">
-          Programs
-        </span>
-        <div className="flex items-end justify-between gap-4">
-          <h1 className="font-display-tight text-4xl md:text-5xl">
-            Sunday <em className="text-(--color-accent) not-italic">mornings</em>.
-          </h1>
+        <div className="flex items-center justify-between gap-4">
+          <span className="text-xs uppercase tracking-[0.22em] text-(--color-muted-fg)">
+            Programs
+          </span>
           {canCreate && (
             <Link
               href="/playlists/new"

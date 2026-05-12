@@ -10,24 +10,16 @@ export default async function SongsPage() {
 
   return (
     <div className="grid gap-6 max-w-5xl">
-      <header className="grid gap-2">
-        <span className="text-xs uppercase tracking-[0.22em] text-(--color-muted-fg)">
-          Repertoire
-        </span>
-        <div className="flex items-end justify-between gap-4">
-          <h1 className="font-display-tight text-4xl md:text-5xl">
-            The <em className="text-(--color-accent) not-italic">songbook</em>.
-          </h1>
-          {isAdmin && (
-            <Link
-              href="/songs/new"
-              className="flex items-center gap-2 rounded-lg bg-(--color-accent) px-4 py-2 text-sm font-medium text-(--color-accent-fg) hover:opacity-90"
-            >
-              <Plus className="size-4" aria-hidden />
-              New song
-            </Link>
-          )}
-        </div>
+      <header className="flex items-center justify-end">
+        {isAdmin && (
+          <Link
+            href="/songs/new"
+            className="flex items-center gap-2 rounded-lg bg-(--color-accent) px-4 py-2 text-sm font-medium text-(--color-accent-fg) hover:opacity-90"
+          >
+            <Plus className="size-4" aria-hidden />
+            New song
+          </Link>
+        )}
       </header>
 
       <SongsListClient
