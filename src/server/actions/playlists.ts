@@ -321,7 +321,7 @@ export async function addSongToPlaylist(rawInput: z.input<typeof addSongInput>) 
   const parsed = addSongInput.safeParse(rawInput);
   if (!parsed.success) throw new ValidationError(parsed.error.flatten());
 
-  await requireOwnerOrAdmin(parsed.data.playlist_id);
+  const session = await requireOwnerOrAdmin(parsed.data.playlist_id);
 
   const sb = await createSupabaseServerClient();
 
@@ -351,6 +351,19 @@ export async function addSongToPlaylist(rawInput: z.input<typeof addSongInput>) 
 
   if (error || !data) throw new Error(error?.message ?? 'insert failed');
 
+  const sbAdmin = createSupabaseAdminClient();
+  await sbAdmin.rpc('write_audit', {
+    p_actor: session.profile.id,
+    p_action: 'playlist.item_add',
+    p_target_type: 'playlist',
+    p_target_id: parsed.data.playlist_id,
+    p_metadata: {
+      item_id: data.id,
+      song_id: parsed.data.song_id,
+      position: nextPosition,
+    },
+  });
+
   revalidatePath(`/playlists/${parsed.data.playlist_id}`);
   revalidatePath(`/playlists/${parsed.data.playlist_id}/edit`);
 
@@ -367,15 +380,15 @@ export async function removePlaylistItem(itemId: string) {
 
   const sb = await createSupabaseServerClient();
 
-  // First fetch the item to get playlist_id + position
+  // First fetch the item to get playlist_id + position + song_id (for audit)
   const { data: item, error: fetchErr } = await sb
     .from('playlist_items')
-    .select('id, playlist_id, position')
+    .select('id, playlist_id, position, song_id')
     .eq('id', itemId)
     .single();
   if (fetchErr || !item) throw new NotFoundError('PlaylistItem');
 
-  await requireOwnerOrAdmin(item.playlist_id);
+  const session = await requireOwnerOrAdmin(item.playlist_id);
 
   // Delete the item
   const { error: delErr } = await sb.from('playlist_items').delete().eq('id', itemId);
@@ -394,6 +407,19 @@ export async function removePlaylistItem(itemId: string) {
       .update({ position: f.position - 1 })
       .eq('id', f.id);
   }
+
+  const sbAdmin = createSupabaseAdminClient();
+  await sbAdmin.rpc('write_audit', {
+    p_actor: session.profile.id,
+    p_action: 'playlist.item_remove',
+    p_target_type: 'playlist',
+    p_target_id: item.playlist_id,
+    p_metadata: {
+      item_id: itemId,
+      song_id: item.song_id,
+      position: item.position,
+    },
+  });
 
   revalidatePath(`/playlists/${item.playlist_id}`);
   revalidatePath(`/playlists/${item.playlist_id}/edit`);
@@ -417,7 +443,7 @@ export async function updatePlaylistItem(rawInput: z.input<typeof updateItemInpu
     .single();
   if (fetchErr || !item) throw new NotFoundError('PlaylistItem');
 
-  await requireOwnerOrAdmin(item.playlist_id);
+  const session = await requireOwnerOrAdmin(item.playlist_id);
 
   const updates: Record<string, unknown> = {};
   if (parsed.data.transpose_semitones !== undefined) {
@@ -431,6 +457,18 @@ export async function updatePlaylistItem(rawInput: z.input<typeof updateItemInpu
   const { error } = await sb.from('playlist_items').update(updates).eq('id', parsed.data.id);
   if (error) throw new Error(error.message);
 
+  const sbAdmin = createSupabaseAdminClient();
+  await sbAdmin.rpc('write_audit', {
+    p_actor: session.profile.id,
+    p_action: 'playlist.item_update',
+    p_target_type: 'playlist',
+    p_target_id: item.playlist_id,
+    p_metadata: {
+      item_id: parsed.data.id,
+      fields_changed: Object.keys(updates),
+    },
+  });
+
   revalidatePath(`/playlists/${item.playlist_id}`);
   revalidatePath(`/playlists/${item.playlist_id}/edit`);
 }
@@ -443,7 +481,7 @@ export async function reorderPlaylistItems(rawInput: z.input<typeof reorderInput
   const parsed = reorderInput.safeParse(rawInput);
   if (!parsed.success) throw new ValidationError(parsed.error.flatten());
 
-  await requireOwnerOrAdmin(parsed.data.playlist_id);
+  const session = await requireOwnerOrAdmin(parsed.data.playlist_id);
 
   const sb = await createSupabaseServerClient();
 
@@ -453,6 +491,17 @@ export async function reorderPlaylistItems(rawInput: z.input<typeof reorderInput
     if (!id) continue;
     await sb.from('playlist_items').update({ position: i }).eq('id', id);
   }
+
+  const sbAdmin = createSupabaseAdminClient();
+  await sbAdmin.rpc('write_audit', {
+    p_actor: session.profile.id,
+    p_action: 'playlist.items_reorder',
+    p_target_type: 'playlist',
+    p_target_id: parsed.data.playlist_id,
+    p_metadata: {
+      ordered_item_ids: parsed.data.ordered_item_ids,
+    },
+  });
 
   revalidatePath(`/playlists/${parsed.data.playlist_id}`);
   revalidatePath(`/playlists/${parsed.data.playlist_id}/edit`);
