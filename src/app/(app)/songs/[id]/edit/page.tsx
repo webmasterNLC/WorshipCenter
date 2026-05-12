@@ -1,8 +1,9 @@
 import { notFound, redirect } from 'next/navigation';
 import { requireRole } from '@/server/auth/require';
-import { getSong, updateSong } from '@/server/actions/songs';
+import { getSong, updateSong, deleteSong } from '@/server/actions/songs';
 import { runAction } from '@/server/actions/_action-result';
 import { SongEditor } from '@/components/editor/SongEditor';
+import { DeleteSongButton } from '@/components/songs/DeleteSongButton';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -61,6 +62,12 @@ export default async function EditSongPage({ params, searchParams }: PageProps) 
     redirect(`/songs/${id}`);
   }
 
+  async function handleDelete() {
+    'use server';
+    await deleteSong(id);
+    redirect('/songs');
+  }
+
   const initialValues = {
     original_key: song.original_key,
     bpm: song.bpm,
@@ -92,6 +99,22 @@ export default async function EditSongPage({ params, searchParams }: PageProps) 
         action={editSongAction}
         errorCode={error ?? null}
       />
+
+      <section className="grid gap-2 rounded-2xl border border-(--color-danger)/30 p-5 mt-2">
+        <h2 className="text-xs uppercase tracking-[0.22em] text-(--color-danger)">
+          Danger zone
+        </h2>
+        <p className="text-sm text-(--color-muted-fg)">
+          Deleting a song also removes it from every program (setlist) it
+          currently appears in. This cannot be undone.
+        </p>
+        <div>
+          <DeleteSongButton
+            songTitle={primary?.title ?? 'this song'}
+            onConfirm={handleDelete}
+          />
+        </div>
+      </section>
     </div>
   );
 }
