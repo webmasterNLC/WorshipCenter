@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { inter, notoSans, notoSansTamil, fraunces } from './fonts';
+import { body, notoSans, notoSansTamil, display } from './fonts';
 
 export const metadata: Metadata = {
   title: 'NLC Burgdorf SongDrop',
@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const fontVars = `${inter.variable} ${notoSans.variable} ${notoSansTamil.variable} ${fraunces.variable}`;
+  const fontVars = `${body.variable} ${notoSans.variable} ${notoSansTamil.variable} ${display.variable}`;
   return (
     <html lang="en" suppressHydrationWarning className={fontVars}>
       <body className="min-h-dvh">{children}</body>

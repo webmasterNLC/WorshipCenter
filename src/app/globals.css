@@ -1,26 +1,33 @@
 @import "tailwindcss";
 
-/* CSS variables drive theme tokens. Light is the default; .dark switches them. */
+/* Brand tokens — navy (#1F3A60) + cream (#FEFFF8). Variables drive theme;
+   `.dark` flips them for low-light surfaces, `.stage-dark` stays pitch-black
+   for worship presentation. */
 @layer base {
   :root {
-    --color-bg:        oklch(99% 0 0);
-    --color-fg:        oklch(15% 0.02 250);
-    --color-muted:     oklch(96% 0.005 250);
-    --color-muted-fg:  oklch(45% 0.02 250);
-    --color-border:    oklch(90% 0.005 250);
-    --color-accent:    oklch(60% 0.13 60);   /* warm amber */
-    --color-accent-fg: oklch(99% 0 0);
+    --color-bg:        #FEFFF8; /* cream */
+    --color-fg:        #1F3A60; /* navy */
+    --color-muted:     #F1EEE2; /* warm off-cream */
+    --color-muted-fg:  #2a4d7a; /* navy.light — secondary text */
+    --color-border:    #E5E2D5; /* warm border */
+    --color-accent:    #1F3A60; /* navy — primary action */
+    --color-accent-fg: #FEFFF8; /* cream on navy */
     --color-danger:    oklch(55% 0.20 25);
+
+    --navy:        #1F3A60;
+    --navy-light:  #2a4d7a;
+    --navy-dark:   #162b47;
+    --cream:       #FEFFF8;
   }
 
   .dark {
-    --color-bg:        oklch(14% 0.02 250);
-    --color-fg:        oklch(96% 0 0);
-    --color-muted:     oklch(20% 0.02 250);
-    --color-muted-fg:  oklch(70% 0.02 250);
-    --color-border:    oklch(25% 0.02 250);
-    --color-accent:    oklch(70% 0.14 60);
-    --color-accent-fg: oklch(14% 0 0);
+    --color-bg:        #162b47; /* navy.dark */
+    --color-fg:        #FEFFF8; /* cream */
+    --color-muted:     #1F3A60; /* navy */
+    --color-muted-fg:  #B8C5D9;
+    --color-border:    #2a4d7a; /* navy.light */
+    --color-accent:    #FEFFF8; /* cream */
+    --color-accent-fg: #162b47; /* navy.dark */
     --color-danger:    oklch(70% 0.20 25);
   }
 
@@ -29,8 +36,7 @@
     color: var(--color-fg);
   }
   body {
-    font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    font-feature-settings: "ss01", "cv11";
+    font-family: var(--font-body), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
 
   .stage-dark {
@@ -39,8 +45,8 @@
     --color-muted:     oklch(8% 0 0);
     --color-muted-fg:  oklch(70% 0 0);
     --color-border:    oklch(20% 0 0);
-    --color-accent:    oklch(78% 0.16 60);
-    --color-accent-fg: oklch(0% 0 0);
+    --color-accent:    #FEFFF8;
+    --color-accent-fg: #162b47;
     --color-danger:    oklch(75% 0.22 25);
   }
   [lang="ta"], .lang-ta {
@@ -50,24 +56,23 @@
     font-family: var(--font-noto-sans), ui-sans-serif, sans-serif;
   }
 
-  /* Display serif — for editorial headings and section numerals. */
+  /* Oswald — used for headings, nav, labels. Often uppercase tracking-widest. */
   .font-display {
-    font-family: var(--font-display), ui-serif, Georgia, serif;
-    font-variation-settings: "opsz" 60, "SOFT" 100, "WONK" 1;
-    letter-spacing: -0.015em;
+    font-family: var(--font-display), "Oswald", ui-sans-serif, sans-serif;
+    letter-spacing: -0.005em;
   }
   .font-display-tight {
-    font-family: var(--font-display), ui-serif, Georgia, serif;
-    font-variation-settings: "opsz" 144, "SOFT" 100, "WONK" 1;
-    letter-spacing: -0.03em;
-  }
-  /* Italic serif accent numeral — used for stat counts and section numbers. */
-  .numeral {
-    font-family: var(--font-display), ui-serif, Georgia, serif;
-    font-style: italic;
-    font-variation-settings: "opsz" 96, "SOFT" 100, "WONK" 1, "wght" 380;
-    color: var(--color-accent);
+    font-family: var(--font-display), "Oswald", ui-sans-serif, sans-serif;
+    font-weight: 600;
     letter-spacing: -0.02em;
+  }
+  /* Italic accent numeral — section numbers and stat counts. */
+  .numeral {
+    font-family: var(--font-display), "Oswald", ui-sans-serif, sans-serif;
+    font-style: italic;
+    font-weight: 400;
+    color: var(--color-accent);
+    letter-spacing: 0;
     line-height: 1;
   }
   /* Subtle hover lift for cards. */
@@ -78,7 +83,7 @@
   }
   .card-lift:hover {
     transform: translateY(-2px);
-    box-shadow: 0 18px 32px -22px oklch(20% 0.02 250 / 0.18);
+    box-shadow: 0 18px 32px -22px rgb(31 58 96 / 0.22);
   }
 }
 

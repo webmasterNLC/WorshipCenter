@@ -1,14 +1,15 @@
-import { Inter, Noto_Sans, Noto_Sans_Tamil, Fraunces } from 'next/font/google';
+import { Montserrat, Oswald, Noto_Sans, Noto_Sans_Tamil } from 'next/font/google';
 
-export const inter = Inter({
+export const body = Montserrat({
   subsets: ['latin', 'latin-ext'],
-  variable: '--font-inter',
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-body',
   display: 'swap',
 });
 
-export const fraunces = Fraunces({
+export const display = Oswald({
   subsets: ['latin', 'latin-ext'],
-  axes: ['SOFT', 'WONK', 'opsz'],
+  weight: ['300', '400', '500', '600', '700'],
   variable: '--font-display',
   display: 'swap',
 });
