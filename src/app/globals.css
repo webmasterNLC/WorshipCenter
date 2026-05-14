@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
-/* Monochrome tokens — white (#FFFFFF) + black (#000000). Variables drive
-   theme; `.dark` inverts to black-on-white, `.stage-dark` stays pitch-black
-   for worship presentation. */
+/* Monochrome theme — white (#FFFFFF) + black (#000000), with navy
+   (#1F3A60) as the accent for primary buttons, links, and numerals.
+   `.dark` inverts the body to black/white; `.stage-dark` stays
+   pitch-black for worship presentation. */
 @layer base {
   :root {
     --color-bg:        #FFFFFF;
@@ -10,9 +11,13 @@
     --color-muted:     #F5F5F5;
     --color-muted-fg:  #6B6B6B;
     --color-border:    #E5E5E5;
-    --color-accent:    #000000; /* primary action */
+    --color-accent:    #1F3A60; /* navy — buttons, links, numerals */
     --color-accent-fg: #FFFFFF;
     --color-danger:    oklch(55% 0.20 25);
+
+    --navy:        #1F3A60;
+    --navy-light:  #2a4d7a;
+    --navy-dark:   #162b47;
   }
 
   .dark {
@@ -21,8 +26,8 @@
     --color-muted:     #1A1A1A;
     --color-muted-fg:  #A3A3A3;
     --color-border:    #2A2A2A;
-    --color-accent:    #FFFFFF;
-    --color-accent-fg: #000000;
+    --color-accent:    #2a4d7a; /* navy.light — readable on black */
+    --color-accent-fg: #FFFFFF;
     --color-danger:    oklch(70% 0.20 25);
   }
 
