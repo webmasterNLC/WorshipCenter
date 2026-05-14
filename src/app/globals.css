@@ -1,33 +1,28 @@
 @import "tailwindcss";
 
-/* Brand tokens — navy (#1F3A60) + cream (#FEFFF8). Variables drive theme;
-   `.dark` flips them for low-light surfaces, `.stage-dark` stays pitch-black
+/* Monochrome tokens — white (#FFFFFF) + black (#000000). Variables drive
+   theme; `.dark` inverts to black-on-white, `.stage-dark` stays pitch-black
    for worship presentation. */
 @layer base {
   :root {
-    --color-bg:        #FEFFF8; /* cream */
-    --color-fg:        #1F3A60; /* navy */
-    --color-muted:     #F1EEE2; /* warm off-cream */
-    --color-muted-fg:  #2a4d7a; /* navy.light — secondary text */
-    --color-border:    #E5E2D5; /* warm border */
-    --color-accent:    #1F3A60; /* navy — primary action */
-    --color-accent-fg: #FEFFF8; /* cream on navy */
+    --color-bg:        #FFFFFF;
+    --color-fg:        #000000;
+    --color-muted:     #F5F5F5;
+    --color-muted-fg:  #6B6B6B;
+    --color-border:    #E5E5E5;
+    --color-accent:    #000000; /* primary action */
+    --color-accent-fg: #FFFFFF;
     --color-danger:    oklch(55% 0.20 25);
-
-    --navy:        #1F3A60;
-    --navy-light:  #2a4d7a;
-    --navy-dark:   #162b47;
-    --cream:       #FEFFF8;
   }
 
   .dark {
-    --color-bg:        #162b47; /* navy.dark */
-    --color-fg:        #FEFFF8; /* cream */
-    --color-muted:     #1F3A60; /* navy */
-    --color-muted-fg:  #B8C5D9;
-    --color-border:    #2a4d7a; /* navy.light */
-    --color-accent:    #FEFFF8; /* cream */
-    --color-accent-fg: #162b47; /* navy.dark */
+    --color-bg:        #000000;
+    --color-fg:        #FFFFFF;
+    --color-muted:     #1A1A1A;
+    --color-muted-fg:  #A3A3A3;
+    --color-border:    #2A2A2A;
+    --color-accent:    #FFFFFF;
+    --color-accent-fg: #000000;
     --color-danger:    oklch(70% 0.20 25);
   }
 
@@ -40,13 +35,13 @@
   }
 
   .stage-dark {
-    --color-bg:        oklch(0% 0 0);
-    --color-fg:        oklch(95% 0 0);
-    --color-muted:     oklch(8% 0 0);
-    --color-muted-fg:  oklch(70% 0 0);
-    --color-border:    oklch(20% 0 0);
-    --color-accent:    #FEFFF8;
-    --color-accent-fg: #162b47;
+    --color-bg:        #000000;
+    --color-fg:        #FFFFFF;
+    --color-muted:     #0D0D0D;
+    --color-muted-fg:  #B3B3B3;
+    --color-border:    #2A2A2A;
+    --color-accent:    #FFFFFF;
+    --color-accent-fg: #000000;
     --color-danger:    oklch(75% 0.22 25);
   }
   [lang="ta"], .lang-ta {
@@ -83,7 +78,7 @@
   }
   .card-lift:hover {
     transform: translateY(-2px);
-    box-shadow: 0 18px 32px -22px rgb(31 58 96 / 0.22);
+    box-shadow: 0 18px 32px -22px rgb(0 0 0 / 0.22);
   }
 }
 
