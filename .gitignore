@@ -28,3 +28,7 @@ test-results/
 # Supabase local
 supabase/.branches/
 supabase/.temp/
+
+# Brand source files — high-res originals live locally; only the
+# web-optimized copies under public/ are committed.
+NLC/
