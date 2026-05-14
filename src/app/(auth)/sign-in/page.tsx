@@ -39,6 +39,13 @@ export default async function SignInPage({
 
   return (
     <>
+      <div className="mb-6 flex justify-center">
+        <span
+          className="nlc-logo h-20 w-20"
+          role="img"
+          aria-label="NLC Burgdorf"
+        />
+      </div>
       <h1 className="mb-1 text-xl font-semibold">Sign in</h1>
       <p className="mb-6 text-sm text-(--color-muted-fg)">
         Enter your email and password.

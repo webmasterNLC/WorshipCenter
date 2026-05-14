@@ -20,9 +20,12 @@ export function SideRail({ session }: { session: Session }) {
 
   return (
     <aside className="hidden border-r border-(--color-border) px-3 py-6 md:flex md:flex-col md:gap-6">
-      <Link href="/home" className="flex items-baseline gap-1.5 px-3">
-        <span className="font-display-tight text-2xl">Song</span>
-        <span className="font-display-tight text-2xl italic text-(--color-accent)">drop</span>
+      <Link
+        href="/home"
+        className="flex items-center justify-center px-3"
+        aria-label="NLC Burgdorf — Home"
+      >
+        <span className="nlc-logo h-14 w-14" role="img" aria-label="NLC Burgdorf" />
       </Link>
       <ul className="grid gap-0.5">
         {items.map(({ href, label, icon: Icon }) => (

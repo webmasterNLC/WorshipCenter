@@ -63,6 +63,15 @@
     letter-spacing: 0;
     line-height: 1;
   }
+  /* NLC logo rendered as a mask so it picks up --color-accent automatically.
+     Navy on light theme, white on stage-dark — single asset, theme-aware. */
+  .nlc-logo {
+    display: inline-block;
+    background-color: var(--color-accent);
+    -webkit-mask: url('/nlc-logo.png') center / contain no-repeat;
+            mask: url('/nlc-logo.png') center / contain no-repeat;
+  }
+
   /* Subtle hover lift for cards. */
   .card-lift {
     transition: transform 280ms cubic-bezier(.2,.8,.2,1),
