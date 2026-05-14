@@ -127,7 +127,7 @@ export function SongViewer({ song, initialSemitones = 0, navigationSlot, editHre
   };
 
   const cycleTheme = () => {
-    const themes: Theme[] = ['light', 'dark', 'stage-dark'];
+    const themes: Theme[] = ['light', 'stage-dark'];
     const next = themes[(themes.indexOf(theme) + 1) % themes.length]!;
     setTheme(next);
   };
@@ -194,7 +194,7 @@ export function SongViewer({ song, initialSemitones = 0, navigationSlot, editHre
           className="size-8 rounded-full border border-(--color-border) flex items-center justify-center text-xs hover:bg-(--color-muted)"
           onClick={(e) => { e.stopPropagation(); cycleTheme(); }}
         >
-          {theme === 'stage-dark' ? '★' : theme === 'dark' ? '●' : '○'}
+          {theme === 'stage-dark' ? '★' : '○'}
         </button>
 
         <button

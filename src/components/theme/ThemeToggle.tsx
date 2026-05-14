@@ -1,11 +1,10 @@
 'use client';
-import { Sun, Moon, Sparkles } from 'lucide-react';
+import { Sun, Sparkles } from 'lucide-react';
 import { useTheme, type Theme } from './ThemeProvider';
 
-const ORDER: Theme[] = ['light', 'dark', 'stage-dark'];
+const ORDER: Theme[] = ['light', 'stage-dark'];
 const LABEL: Record<Theme, string> = {
   light:        'Light',
-  dark:         'Dark',
   'stage-dark': 'Stage',
 };
 
@@ -14,10 +13,7 @@ export function ThemeToggle() {
   const idx = ORDER.indexOf(theme);
   const next = ORDER[(idx + 1) % ORDER.length] ?? 'light';
 
-  const Icon =
-    theme === 'light' ? Sun :
-    theme === 'dark'  ? Moon :
-                        Sparkles;
+  const Icon = theme === 'light' ? Sun : Sparkles;
 
   return (
     <button

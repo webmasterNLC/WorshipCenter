@@ -2,8 +2,7 @@
 
 /* Monochrome theme — white (#FFFFFF) + black (#000000), with navy
    (#1F3A60) as the accent for primary buttons, links, and numerals.
-   `.dark` inverts the body to black/white; `.stage-dark` stays
-   pitch-black for worship presentation. */
+   `.stage-dark` stays pitch-black for worship presentation. */
 @layer base {
   :root {
     --color-bg:        #FFFFFF;
@@ -18,17 +17,6 @@
     --navy:        #1F3A60;
     --navy-light:  #2a4d7a;
     --navy-dark:   #162b47;
-  }
-
-  .dark {
-    --color-bg:        #000000;
-    --color-fg:        #FFFFFF;
-    --color-muted:     #1A1A1A;
-    --color-muted-fg:  #A3A3A3;
-    --color-border:    #2A2A2A;
-    --color-accent:    #2a4d7a; /* navy.light — readable on black */
-    --color-accent-fg: #FFFFFF;
-    --color-danger:    oklch(70% 0.20 25);
   }
 
   html, body {
