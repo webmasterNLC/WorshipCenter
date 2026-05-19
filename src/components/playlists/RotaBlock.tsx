@@ -5,7 +5,7 @@ import {
   ROTA_ROLES,
   ROTA_ROLE_LABEL,
   type RotaRole,
-} from '@/server/actions/service.schemas';
+} from '@/server/actions/rota.constants';
 
 interface Assignment {
   id: string;

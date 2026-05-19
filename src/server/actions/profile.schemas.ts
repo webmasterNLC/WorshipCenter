@@ -1,5 +1,8 @@
 import { z } from 'zod';
 import { userRole } from './invitations.schemas';
+import { CAPABILITIES, type Capability } from './rota.constants';
+
+export { CAPABILITIES, type Capability };
 
 export const updateMyProfileInput = z.object({
   display_name: z.string().trim().min(1).max(80),
@@ -11,12 +14,6 @@ export const adminSetUserRoleInput = z.object({
   role: userRole,
 });
 export type AdminSetUserRoleInput = z.infer<typeof adminSetUserRoleInput>;
-
-export const CAPABILITIES = [
-  'worship_lead', 'vocal', 'drums', 'bass', 'guitar', 'keys',
-  'sound', 'camera', 'projector',
-] as const;
-export type Capability = (typeof CAPABILITIES)[number];
 
 export const capability = z.enum(CAPABILITIES);
 

@@ -1,9 +1,7 @@
 import { z } from 'zod';
-import { CAPABILITIES, type Capability } from './profile.schemas';
+import { ROTA_ROLES, ROTA_ROLE_LABEL, type RotaRole } from './rota.constants';
 
-// Rota roles are exactly the same set as profile capabilities.
-export const ROTA_ROLES = CAPABILITIES;
-export type RotaRole = Capability;
+export { ROTA_ROLES, ROTA_ROLE_LABEL, type RotaRole };
 
 export const rotaRole = z.enum(ROTA_ROLES);
 
@@ -21,15 +19,3 @@ export const unassignFromServiceInput = z.object({
   member_id: z.string().uuid(),
 });
 export type UnassignFromServiceInput = z.infer<typeof unassignFromServiceInput>;
-
-export const ROTA_ROLE_LABEL: Record<RotaRole, string> = {
-  worship_lead: 'Worship lead',
-  vocal:        'Vocal',
-  drums:        'Drums',
-  bass:         'Bass',
-  guitar:       'Guitar',
-  keys:         'Keys',
-  sound:        'Sound',
-  camera:       'Camera',
-  projector:    'Projector',
-};
