@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   // 1) Origin/Host equality check on mutating methods (CSRF defense-in-depth).
   // Modern browsers always send Origin on cross-origin and same-origin POSTs.
   // Missing Origin on a state-changing method = non-browser client / suspect; reject.
