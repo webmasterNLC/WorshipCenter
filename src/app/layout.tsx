@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Analytics } from '@vercel/analytics/next';
 import './globals.css';
 import { body, notoSans, notoSansTamil, display } from './fonts';
 
@@ -11,7 +12,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const fontVars = `${body.variable} ${notoSans.variable} ${notoSansTamil.variable} ${display.variable}`;
   return (
     <html lang="en" suppressHydrationWarning className={fontVars}>
-      <body className="min-h-dvh">{children}</body>
+      <body className="min-h-dvh">
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }
