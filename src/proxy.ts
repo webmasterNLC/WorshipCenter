@@ -41,15 +41,19 @@ export async function proxy(req: NextRequest) {
   await sb.auth.getUser();
 
   // 3) Security headers.
+  const supabaseOrigin = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!).origin;
+  // Realtime uses a WebSocket on the same host (wss://).
+  const supabaseWs = supabaseOrigin.replace(/^https?:/, 'wss:');
   res.headers.set(
     'Content-Security-Policy',
     [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline'",
+      "worker-src 'self'",
       "style-src 'self' 'unsafe-inline'",
       "font-src 'self' data:",
       "img-src 'self' data:",
-      `connect-src 'self' ${new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!).origin}`,
+      `connect-src 'self' ${supabaseOrigin} ${supabaseWs}`,
       "frame-ancestors 'none'",
     ].join('; '),
   );
