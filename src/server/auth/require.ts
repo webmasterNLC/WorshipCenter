@@ -103,3 +103,24 @@ export async function requireAdminOrAssignedLeader(playlistId: string): Promise<
   if (!data) throw new ForbiddenError();
   return session;
 }
+
+/**
+ * Non-throwing version of {@link requireAdminOrAssignedLeader}. Use for UI
+ * gating (e.g. "show the broadcast toggle only if the user can write").
+ * Returns false for any non-leader, non-admin, or unassigned leader.
+ */
+export async function canEditPlaylist(playlistId: string): Promise<boolean> {
+  const session = await loadSessionCached();
+  if (!session) return false;
+  if (session.profile.role === 'admin') return true;
+  if (session.profile.role !== 'leader') return false;
+  const supabase = await createSupabaseServerClient();
+  const { data } = await supabase
+    .from('service_assignments')
+    .select('id')
+    .eq('playlist_id', playlistId)
+    .eq('member_id', session.profile.id)
+    .limit(1)
+    .maybeSingle();
+  return Boolean(data);
+}

@@ -1,12 +1,10 @@
 'use client';
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { Pencil } from 'lucide-react';
 import { transposeChordPro, detectKeyAccidental, transposeKey } from '@/lib/chordpro';
 import { renderToBlocks } from '@/lib/chordpro';
 import { ChordLine } from './ChordLine';
-import { useTheme } from '@/components/theme/ThemeProvider';
-import type { Theme } from '@/components/theme/ThemeProvider';
 
 const FONT_STEPS = [16, 20, 24, 30, 40] as const;
 const FONT_STEP_KEY = 'songdrop-font-step';
@@ -44,6 +42,9 @@ interface SongViewerProps {
   navigationSlot?: React.ReactNode;
   /** If set, renders an Edit pencil button in the sticky header that links here. */
   editHref?: string;
+  /** Called whenever the user transposes via the +/- buttons. Used by the
+   *  performance viewer to broadcast the lead's adjustments back to the DB. */
+  onSemitonesChange?: (semitones: number) => void;
 }
 
 function readStoredFontStep(): number {
@@ -56,13 +57,14 @@ function readStoredFontStep(): number {
   return 1;
 }
 
-export function SongViewer({ song, initialSemitones = 0, navigationSlot, editHref }: SongViewerProps) {
+export function SongViewer({ song, initialSemitones = 0, navigationSlot, editHref, onSemitonesChange }: SongViewerProps) {
   const [semitones, setSemitones] = useState(initialSemitones);
+  // When the server prop updates (e.g. lead changed the playlist item's
+  // transpose and Realtime triggered a router.refresh()), snap to it.
+  useEffect(() => {
+    setSemitones(initialSemitones);
+  }, [initialSemitones]);
   const [fontStep, setFontStep] = useState(readStoredFontStep);
-  const [autoScroll, setAutoScroll] = useState(false);
-  const { theme, setTheme } = useTheme();
-  const articleRef = useRef<HTMLElement>(null);
-  const rafRef = useRef<number | null>(null);
 
   // Translation tabs are visible only when there are 2+ translations.
   const translations = song.translations ?? [];
@@ -99,47 +101,10 @@ export function SongViewer({ song, initialSemitones = 0, navigationSlot, editHre
     [song.original_key, semitones, accidental],
   );
 
-  // Auto-scroll loop
-  const scrollSpeed = song.bpm ? song.bpm / 200 : 0.5;
-  useEffect(() => {
-    if (!autoScroll) {
-      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
-      return;
-    }
-    const step = () => {
-      window.scrollBy(0, scrollSpeed);
-      rafRef.current = requestAnimationFrame(step);
-    };
-    rafRef.current = requestAnimationFrame(step);
-    return () => { if (rafRef.current !== null) cancelAnimationFrame(rafRef.current); };
-  }, [autoScroll, scrollSpeed]);
-
-  const handleArticleClick = useCallback(() => {
-    if (autoScroll) setAutoScroll(false);
-  }, [autoScroll]);
-
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      articleRef.current?.requestFullscreen().catch(() => {});
-    } else {
-      document.exitFullscreen().catch(() => {});
-    }
-  };
-
-  const cycleTheme = () => {
-    const themes: Theme[] = ['light', 'stage-dark'];
-    const next = themes[(themes.indexOf(theme) + 1) % themes.length]!;
-    setTheme(next);
-  };
-
   const fontSize = FONT_STEPS[fontStep] ?? 20;
 
   return (
-    <article
-      ref={articleRef}
-      className="max-w-3xl mx-auto pb-24"
-      onClick={handleArticleClick}
-    >
+    <article className="max-w-3xl mx-auto pb-24">
       {navigationSlot}
 
       {/* Sticky header */}
@@ -163,7 +128,14 @@ export function SongViewer({ song, initialSemitones = 0, navigationSlot, editHre
           <button
             aria-label="Transpose down"
             className="size-8 rounded-full border border-(--color-border) flex items-center justify-center text-sm font-bold hover:bg-(--color-muted)"
-            onClick={(e) => { e.stopPropagation(); setSemitones((s) => s - 1); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setSemitones((s) => {
+                const next = s - 1;
+                onSemitonesChange?.(next);
+                return next;
+              });
+            }}
           >−</button>
           <span className="text-xs font-mono w-8 text-center">
             {semitones > 0 ? `+${semitones}` : semitones}
@@ -171,7 +143,14 @@ export function SongViewer({ song, initialSemitones = 0, navigationSlot, editHre
           <button
             aria-label="Transpose up"
             className="size-8 rounded-full border border-(--color-border) flex items-center justify-center text-sm font-bold hover:bg-(--color-muted)"
-            onClick={(e) => { e.stopPropagation(); setSemitones((s) => s + 1); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setSemitones((s) => {
+                const next = s + 1;
+                onSemitonesChange?.(next);
+                return next;
+              });
+            }}
           >+</button>
         </div>
 
@@ -188,26 +167,6 @@ export function SongViewer({ song, initialSemitones = 0, navigationSlot, editHre
             onClick={(e) => { e.stopPropagation(); setFontStep((s) => Math.min(FONT_STEPS.length - 1, s + 1)); }}
           >A+</button>
         </div>
-
-        <button
-          aria-label={`Switch theme (current: ${theme})`}
-          className="size-8 rounded-full border border-(--color-border) flex items-center justify-center text-xs hover:bg-(--color-muted)"
-          onClick={(e) => { e.stopPropagation(); cycleTheme(); }}
-        >
-          {theme === 'stage-dark' ? '★' : '○'}
-        </button>
-
-        <button
-          aria-label={autoScroll ? 'Stop autoscroll' : 'Start autoscroll'}
-          className={`size-8 rounded-full border flex items-center justify-center text-xs hover:bg-(--color-muted) ${autoScroll ? 'border-(--color-accent) text-(--color-accent)' : 'border-(--color-border)'}`}
-          onClick={(e) => { e.stopPropagation(); setAutoScroll((v) => !v); }}
-        >▼</button>
-
-        <button
-          aria-label="Toggle fullscreen"
-          className="size-8 rounded-full border border-(--color-border) flex items-center justify-center text-xs hover:bg-(--color-muted)"
-          onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }}
-        >⛶</button>
 
         {editHref && (
           <Link

@@ -1,25 +1,72 @@
 'use client';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ChevronLeft, ChevronRight, Radio, RadioOff, RadioTower } from 'lucide-react';
+import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { usePlaylistRealtime } from '@/lib/hooks/usePlaylistRealtime';
 
 interface PerformanceNavProps {
   playlistId: string;
   currentIdx: number;
   totalItems: number;
   programLabel: string;
+  /** True if the current user has write access to this playlist. Controls
+   *  whether the Broadcast toggle is shown. */
+  canBroadcast?: boolean;
+  /** Current broadcast-mode state (lifted to the parent). */
+  broadcasting?: boolean;
+  /** Called when the user flips the Broadcast toggle. */
+  onBroadcastChange?: (next: boolean) => void;
 }
+
+const FOLLOW_KEY = 'songdrop-follow-lead';
 
 export function PerformanceNav({
   playlistId,
   currentIdx,
   totalItems,
   programLabel,
+  canBroadcast = false,
+  broadcasting = false,
+  onBroadcastChange,
 }: PerformanceNavProps) {
+  const router = useRouter();
   const hasPrev = currentIdx > 0;
   const hasNext = currentIdx < totalItems - 1;
   const prevUrl = hasPrev ? `/playlists/${playlistId}/play/${currentIdx - 1}` : null;
   const nextUrl = hasNext ? `/playlists/${playlistId}/play/${currentIdx + 1}` : null;
+
+  // Follow-Lead toggle — when ON, realtime playlist_items changes refresh
+  // this iPad. When OFF, the musician can break out (different key, etc.)
+  // without being yanked back by the lead's edits. Persisted per device.
+  const [follow, setFollow] = useState(true);
+  useEffect(() => {
+    if (localStorage.getItem(FOLLOW_KEY) === 'false') setFollow(false);
+  }, []);
+  useEffect(() => {
+    localStorage.setItem(FOLLOW_KEY, String(follow));
+  }, [follow]);
+
+  // Ref so the realtime callback stays stable across follow toggles —
+  // avoids tearing down and re-subscribing the channel on every flip.
+  const followRef = useRef(follow);
+  useEffect(() => {
+    followRef.current = follow;
+  }, [follow]);
+
+  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
+  const handleRemoteChange = useCallback(() => {
+    if (followRef.current) router.refresh();
+  }, [router]);
+  usePlaylistRealtime(supabase, playlistId, handleRemoteChange);
+
+  const handleToggleFollow = () => {
+    const next = !follow;
+    setFollow(next);
+    // Re-enabling = snap back to the lead's latest state.
+    if (next) router.refresh();
+  };
 
   // Keyboard / Bluetooth pedal navigation
   useEffect(() => {
@@ -43,9 +90,41 @@ export function PerformanceNav({
         ← {programLabel}
       </Link>
 
-      <span className="text-xs text-(--color-muted-fg) font-mono">
-        {currentIdx + 1} / {totalItems}
-      </span>
+      <div className="flex items-center gap-2">
+        {canBroadcast && (
+          <button
+            type="button"
+            onClick={() => onBroadcastChange?.(!broadcasting)}
+            aria-pressed={broadcasting}
+            aria-label={broadcasting ? 'Broadcasting transposes to all iPads — tap to stop' : 'Solo transpose — tap to broadcast'}
+            title={broadcasting ? 'Broadcasting' : 'Broadcast off'}
+            className={`size-8 flex items-center justify-center rounded-full border transition-colors ${
+              broadcasting
+                ? 'border-(--color-accent) bg-(--color-accent) text-(--color-accent-fg)'
+                : 'border-(--color-border) text-(--color-muted-fg)'
+            }`}
+          >
+            <RadioTower className="size-4" />
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={handleToggleFollow}
+          aria-pressed={follow}
+          aria-label={follow ? 'Following lead — tap to break out' : 'Not following lead — tap to sync'}
+          title={follow ? 'Following lead' : 'Solo'}
+          className={`size-8 flex items-center justify-center rounded-full border transition-colors ${
+            follow
+              ? 'border-(--color-accent) text-(--color-accent)'
+              : 'border-(--color-border) text-(--color-muted-fg)'
+          }`}
+        >
+          {follow ? <Radio className="size-4" /> : <RadioOff className="size-4" />}
+        </button>
+        <span className="text-xs text-(--color-muted-fg) font-mono">
+          {currentIdx + 1} / {totalItems}
+        </span>
+      </div>
 
       <div className="flex gap-1">
         {prevUrl ? (
