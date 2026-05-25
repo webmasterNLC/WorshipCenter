@@ -108,3 +108,5 @@ Ein internes Worship-Tool für die **NLC Burgdorf** (New Life Church Burgdorf). 
 - NLC-Logo via theme-aware CSS-Mask (`.nlc-logo`)
 - Zielgruppe: das Worship-Team von NLC Burgdorf – Worship Leader, Sänger, Musiker, Technik (Sound / Beamer / Kamera) und Admins
 - Default-Rolle für neue User: `musician` (read-only auf Songs, keine Rota-Bearbeitung)
+
+
