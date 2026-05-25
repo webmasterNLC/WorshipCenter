@@ -139,3 +139,4 @@ Implementation plans:
 - The service role key is only used in `src/server/...` and never imported by client code. CI greps the production bundle for `service_role` and fails if present.
 - Authorization is enforced in three layers: Zod input validation, handler-side `requireRole` / `requireOwnerOrAdmin`, Postgres RLS.
 - Custom SMTP via the church mail server. Configure once in `.env.local` and once in Supabase Dashboard → Auth → SMTP Settings.
+
