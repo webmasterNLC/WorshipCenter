@@ -44,6 +44,9 @@ interface SongViewerProps {
   navigationSlot?: React.ReactNode;
   /** If set, renders an Edit pencil button in the sticky header that links here. */
   editHref?: string;
+  /** Called whenever the user transposes via the +/- buttons. Used by the
+   *  performance viewer to broadcast the lead's adjustments back to the DB. */
+  onSemitonesChange?: (semitones: number) => void;
 }
 
 function readStoredFontStep(): number {
@@ -56,7 +59,7 @@ function readStoredFontStep(): number {
   return 1;
 }
 
-export function SongViewer({ song, initialSemitones = 0, navigationSlot, editHref }: SongViewerProps) {
+export function SongViewer({ song, initialSemitones = 0, navigationSlot, editHref, onSemitonesChange }: SongViewerProps) {
   const [semitones, setSemitones] = useState(initialSemitones);
   // When the server prop updates (e.g. lead changed the playlist item's
   // transpose and Realtime triggered a router.refresh()), snap to it.
@@ -168,7 +171,14 @@ export function SongViewer({ song, initialSemitones = 0, navigationSlot, editHre
           <button
             aria-label="Transpose down"
             className="size-8 rounded-full border border-(--color-border) flex items-center justify-center text-sm font-bold hover:bg-(--color-muted)"
-            onClick={(e) => { e.stopPropagation(); setSemitones((s) => s - 1); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setSemitones((s) => {
+                const next = s - 1;
+                onSemitonesChange?.(next);
+                return next;
+              });
+            }}
           >−</button>
           <span className="text-xs font-mono w-8 text-center">
             {semitones > 0 ? `+${semitones}` : semitones}
@@ -176,7 +186,14 @@ export function SongViewer({ song, initialSemitones = 0, navigationSlot, editHre
           <button
             aria-label="Transpose up"
             className="size-8 rounded-full border border-(--color-border) flex items-center justify-center text-sm font-bold hover:bg-(--color-muted)"
-            onClick={(e) => { e.stopPropagation(); setSemitones((s) => s + 1); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setSemitones((s) => {
+                const next = s + 1;
+                onSemitonesChange?.(next);
+                return next;
+              });
+            }}
           >+</button>
         </div>
 

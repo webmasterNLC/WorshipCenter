@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
-import { getPlaylist } from '@/server/actions/playlists';
-import { SongViewer } from '@/components/viewer/SongViewer';
-import { PerformanceNav } from '@/components/viewer/PerformanceNav';
+import { getPlaylist, updatePlaylistItem } from '@/server/actions/playlists';
+import { PerformanceView } from '@/components/viewer/PerformanceView';
+import { canEditPlaylist } from '@/server/auth/require';
 
 interface PageProps {
   params: Promise<{ id: string; idx: string }>;
@@ -22,22 +22,26 @@ export default async function PerformancePage({ params }: PageProps) {
   const song = item.song;
   if (!song) notFound();
 
+  const canEdit = await canEditPlaylist(id);
+
+  async function broadcastTranspose(itemId: string, semitones: number) {
+    'use server';
+    await updatePlaylistItem({ id: itemId, transpose_semitones: semitones });
+  }
+
   return (
-    <SongViewer
+    <PerformanceView
       song={song}
+      itemId={item.id}
       initialSemitones={item.transpose_semitones}
-      navigationSlot={
-        <PerformanceNav
-          playlistId={id}
-          currentIdx={idx}
-          totalItems={playlist.items.length}
-          programLabel={
-            playlist.scheduled_for
-              ? `Program · ${playlist.scheduled_for}`
-              : 'Program'
-          }
-        />
+      playlistId={id}
+      currentIdx={idx}
+      totalItems={playlist.items.length}
+      programLabel={
+        playlist.scheduled_for ? `Program · ${playlist.scheduled_for}` : 'Program'
       }
+      canEdit={canEdit}
+      onBroadcastTranspose={broadcastTranspose}
     />
   );
 }

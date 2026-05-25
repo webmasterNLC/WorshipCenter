@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight, Radio, RadioOff } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Radio, RadioOff, RadioTower } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import { usePlaylistRealtime } from '@/lib/hooks/usePlaylistRealtime';
 
@@ -11,6 +11,13 @@ interface PerformanceNavProps {
   currentIdx: number;
   totalItems: number;
   programLabel: string;
+  /** True if the current user has write access to this playlist. Controls
+   *  whether the Broadcast toggle is shown. */
+  canBroadcast?: boolean;
+  /** Current broadcast-mode state (lifted to the parent). */
+  broadcasting?: boolean;
+  /** Called when the user flips the Broadcast toggle. */
+  onBroadcastChange?: (next: boolean) => void;
 }
 
 const FOLLOW_KEY = 'songdrop-follow-lead';
@@ -20,6 +27,9 @@ export function PerformanceNav({
   currentIdx,
   totalItems,
   programLabel,
+  canBroadcast = false,
+  broadcasting = false,
+  onBroadcastChange,
 }: PerformanceNavProps) {
   const router = useRouter();
   const hasPrev = currentIdx > 0;
@@ -81,6 +91,22 @@ export function PerformanceNav({
       </Link>
 
       <div className="flex items-center gap-2">
+        {canBroadcast && (
+          <button
+            type="button"
+            onClick={() => onBroadcastChange?.(!broadcasting)}
+            aria-pressed={broadcasting}
+            aria-label={broadcasting ? 'Broadcasting transposes to all iPads — tap to stop' : 'Solo transpose — tap to broadcast'}
+            title={broadcasting ? 'Broadcasting' : 'Broadcast off'}
+            className={`size-8 flex items-center justify-center rounded-full border transition-colors ${
+              broadcasting
+                ? 'border-(--color-accent) bg-(--color-accent) text-(--color-accent-fg)'
+                : 'border-(--color-border) text-(--color-muted-fg)'
+            }`}
+          >
+            <RadioTower className="size-4" />
+          </button>
+        )}
         <button
           type="button"
           onClick={handleToggleFollow}
