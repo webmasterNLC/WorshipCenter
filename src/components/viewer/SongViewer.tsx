@@ -68,6 +68,20 @@ export function SongViewer({ song, initialSemitones = 0, navigationSlot, editHre
   }, [initialSemitones]);
   const [fontStep, setFontStep] = useState(readStoredFontStep);
   const [autoScroll, setAutoScroll] = useState(false);
+
+  // Hide autoscroll + fullscreen controls when running as an installed PWA —
+  // the app is already fullscreen via the manifest, and on-stage scrolling
+  // is done by hand / pedal. Browser mode still shows them for desktop tests.
+  const [isStandalone, setIsStandalone] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(display-mode: standalone)');
+    const iosStandalone =
+      (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+    setIsStandalone(mq.matches || iosStandalone);
+    const onChange = (e: MediaQueryListEvent) => setIsStandalone(e.matches || iosStandalone);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
   const { theme, setTheme } = useTheme();
   const articleRef = useRef<HTMLElement>(null);
   const rafRef = useRef<number | null>(null);
@@ -219,17 +233,21 @@ export function SongViewer({ song, initialSemitones = 0, navigationSlot, editHre
           {theme === 'stage-dark' ? '★' : '○'}
         </button>
 
-        <button
-          aria-label={autoScroll ? 'Stop autoscroll' : 'Start autoscroll'}
-          className={`size-8 rounded-full border flex items-center justify-center text-xs hover:bg-(--color-muted) ${autoScroll ? 'border-(--color-accent) text-(--color-accent)' : 'border-(--color-border)'}`}
-          onClick={(e) => { e.stopPropagation(); setAutoScroll((v) => !v); }}
-        >▼</button>
+        {!isStandalone && (
+          <button
+            aria-label={autoScroll ? 'Stop autoscroll' : 'Start autoscroll'}
+            className={`size-8 rounded-full border flex items-center justify-center text-xs hover:bg-(--color-muted) ${autoScroll ? 'border-(--color-accent) text-(--color-accent)' : 'border-(--color-border)'}`}
+            onClick={(e) => { e.stopPropagation(); setAutoScroll((v) => !v); }}
+          >▼</button>
+        )}
 
-        <button
-          aria-label="Toggle fullscreen"
-          className="size-8 rounded-full border border-(--color-border) flex items-center justify-center text-xs hover:bg-(--color-muted)"
-          onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }}
-        >⛶</button>
+        {!isStandalone && (
+          <button
+            aria-label="Toggle fullscreen"
+            className="size-8 rounded-full border border-(--color-border) flex items-center justify-center text-xs hover:bg-(--color-muted)"
+            onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }}
+          >⛶</button>
+        )}
 
         {editHref && (
           <Link
