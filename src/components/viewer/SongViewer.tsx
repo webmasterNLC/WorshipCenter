@@ -5,8 +5,6 @@ import { Pencil } from 'lucide-react';
 import { transposeChordPro, detectKeyAccidental, transposeKey } from '@/lib/chordpro';
 import { renderToBlocks } from '@/lib/chordpro';
 import { ChordLine } from './ChordLine';
-import { useTheme } from '@/components/theme/ThemeProvider';
-import type { Theme } from '@/components/theme/ThemeProvider';
 
 const FONT_STEPS = [16, 20, 24, 30, 40] as const;
 const FONT_STEP_KEY = 'songdrop-font-step';
@@ -67,7 +65,6 @@ export function SongViewer({ song, initialSemitones = 0, navigationSlot, editHre
     setSemitones(initialSemitones);
   }, [initialSemitones]);
   const [fontStep, setFontStep] = useState(readStoredFontStep);
-  const { theme, setTheme } = useTheme();
 
   // Translation tabs are visible only when there are 2+ translations.
   const translations = song.translations ?? [];
@@ -103,12 +100,6 @@ export function SongViewer({ song, initialSemitones = 0, navigationSlot, editHre
     () => semitones !== 0 ? transposeKey(song.original_key, semitones, accidental) : song.original_key,
     [song.original_key, semitones, accidental],
   );
-
-  const cycleTheme = () => {
-    const themes: Theme[] = ['light', 'stage-dark'];
-    const next = themes[(themes.indexOf(theme) + 1) % themes.length]!;
-    setTheme(next);
-  };
 
   const fontSize = FONT_STEPS[fontStep] ?? 20;
 
@@ -176,14 +167,6 @@ export function SongViewer({ song, initialSemitones = 0, navigationSlot, editHre
             onClick={(e) => { e.stopPropagation(); setFontStep((s) => Math.min(FONT_STEPS.length - 1, s + 1)); }}
           >A+</button>
         </div>
-
-        <button
-          aria-label={`Switch theme (current: ${theme})`}
-          className="size-8 rounded-full border border-(--color-border) flex items-center justify-center text-xs hover:bg-(--color-muted)"
-          onClick={(e) => { e.stopPropagation(); cycleTheme(); }}
-        >
-          {theme === 'stage-dark' ? '★' : '○'}
-        </button>
 
         {editHref && (
           <Link
