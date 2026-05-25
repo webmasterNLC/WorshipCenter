@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { Pencil } from 'lucide-react';
 import { transposeChordPro, detectKeyAccidental, transposeKey } from '@/lib/chordpro';
@@ -67,24 +67,7 @@ export function SongViewer({ song, initialSemitones = 0, navigationSlot, editHre
     setSemitones(initialSemitones);
   }, [initialSemitones]);
   const [fontStep, setFontStep] = useState(readStoredFontStep);
-  const [autoScroll, setAutoScroll] = useState(false);
-
-  // Hide autoscroll + fullscreen controls when running as an installed PWA —
-  // the app is already fullscreen via the manifest, and on-stage scrolling
-  // is done by hand / pedal. Browser mode still shows them for desktop tests.
-  const [isStandalone, setIsStandalone] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia('(display-mode: standalone)');
-    const iosStandalone =
-      (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
-    setIsStandalone(mq.matches || iosStandalone);
-    const onChange = (e: MediaQueryListEvent) => setIsStandalone(e.matches || iosStandalone);
-    mq.addEventListener('change', onChange);
-    return () => mq.removeEventListener('change', onChange);
-  }, []);
   const { theme, setTheme } = useTheme();
-  const articleRef = useRef<HTMLElement>(null);
-  const rafRef = useRef<number | null>(null);
 
   // Translation tabs are visible only when there are 2+ translations.
   const translations = song.translations ?? [];
@@ -121,33 +104,6 @@ export function SongViewer({ song, initialSemitones = 0, navigationSlot, editHre
     [song.original_key, semitones, accidental],
   );
 
-  // Auto-scroll loop
-  const scrollSpeed = song.bpm ? song.bpm / 200 : 0.5;
-  useEffect(() => {
-    if (!autoScroll) {
-      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
-      return;
-    }
-    const step = () => {
-      window.scrollBy(0, scrollSpeed);
-      rafRef.current = requestAnimationFrame(step);
-    };
-    rafRef.current = requestAnimationFrame(step);
-    return () => { if (rafRef.current !== null) cancelAnimationFrame(rafRef.current); };
-  }, [autoScroll, scrollSpeed]);
-
-  const handleArticleClick = useCallback(() => {
-    if (autoScroll) setAutoScroll(false);
-  }, [autoScroll]);
-
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      articleRef.current?.requestFullscreen().catch(() => {});
-    } else {
-      document.exitFullscreen().catch(() => {});
-    }
-  };
-
   const cycleTheme = () => {
     const themes: Theme[] = ['light', 'stage-dark'];
     const next = themes[(themes.indexOf(theme) + 1) % themes.length]!;
@@ -157,11 +113,7 @@ export function SongViewer({ song, initialSemitones = 0, navigationSlot, editHre
   const fontSize = FONT_STEPS[fontStep] ?? 20;
 
   return (
-    <article
-      ref={articleRef}
-      className="max-w-3xl mx-auto pb-24"
-      onClick={handleArticleClick}
-    >
+    <article className="max-w-3xl mx-auto pb-24">
       {navigationSlot}
 
       {/* Sticky header */}
@@ -232,22 +184,6 @@ export function SongViewer({ song, initialSemitones = 0, navigationSlot, editHre
         >
           {theme === 'stage-dark' ? '★' : '○'}
         </button>
-
-        {!isStandalone && (
-          <button
-            aria-label={autoScroll ? 'Stop autoscroll' : 'Start autoscroll'}
-            className={`size-8 rounded-full border flex items-center justify-center text-xs hover:bg-(--color-muted) ${autoScroll ? 'border-(--color-accent) text-(--color-accent)' : 'border-(--color-border)'}`}
-            onClick={(e) => { e.stopPropagation(); setAutoScroll((v) => !v); }}
-          >▼</button>
-        )}
-
-        {!isStandalone && (
-          <button
-            aria-label="Toggle fullscreen"
-            className="size-8 rounded-full border border-(--color-border) flex items-center justify-center text-xs hover:bg-(--color-muted)"
-            onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }}
-          >⛶</button>
-        )}
 
         {editHref && (
           <Link
