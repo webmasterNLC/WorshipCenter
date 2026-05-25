@@ -30,17 +30,17 @@ export function ChordLine({ block, language }: ChordLineProps) {
       lang={language}
     >
       {block.segments.map((seg, i) => (
-        <span key={i} className="relative inline-block pr-2">
+        <span key={i} className="relative inline-block">
           {hasChords && (
             <span
-              className="block text-xs font-bold text-(--color-accent) select-none"
+              className="block text-xs font-bold text-(--color-accent) select-none pr-2"
               aria-hidden
               style={{ minHeight: '1.2em' }}
             >
               {seg.chord ?? ' '}
             </span>
           )}
-          <span className="block text-base">{seg.lyric || ' '}</span>
+          <span className="block text-base whitespace-pre">{seg.lyric || ' '}</span>
         </span>
       ))}
     </div>
