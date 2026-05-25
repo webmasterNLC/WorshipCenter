@@ -58,6 +58,11 @@ function readStoredFontStep(): number {
 
 export function SongViewer({ song, initialSemitones = 0, navigationSlot, editHref }: SongViewerProps) {
   const [semitones, setSemitones] = useState(initialSemitones);
+  // When the server prop updates (e.g. lead changed the playlist item's
+  // transpose and Realtime triggered a router.refresh()), snap to it.
+  useEffect(() => {
+    setSemitones(initialSemitones);
+  }, [initialSemitones]);
   const [fontStep, setFontStep] = useState(readStoredFontStep);
   const [autoScroll, setAutoScroll] = useState(false);
   const { theme, setTheme } = useTheme();

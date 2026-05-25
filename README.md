@@ -134,6 +134,29 @@ Implementation plans:
 - [`docs/superpowers/plans/2026-05-04-plan-a-followups.md`](docs/superpowers/plans/2026-05-04-plan-a-followups.md) — security hardening (folded into Plan B Phase 0)
 - [`docs/superpowers/plans/2026-05-04-plan-b-song-system.md`](docs/superpowers/plans/2026-05-04-plan-b-song-system.md) — songs + chord engine + viewer + editor (queued)
 
+## Stage iPads (shared performance devices)
+
+The 8 stage iPads run the worship viewer (`/playlists/[id]/play/[idx]`)
+during the service. Recommended setup:
+
+- **One dedicated "Stage" account**, role `viewer` (the default — read-only
+  on songs, no rota editing). All iPads sign in as that account. No
+  schema change needed.
+- Per-musician notes and transpose are a "practice at home" feature.
+  The shared stage iPad is the wrong place for them.
+- Font size + theme are per-device (localStorage), so each iPad can pick
+  its own without affecting the others.
+- The viewer subscribes to Supabase Realtime on `playlist_items` —
+  when the worship lead edits a song's transpose / order / notes, every
+  iPad refreshes within ~1s. A **Follow-Lead** toggle (radio icon in
+  the performance navbar) lets an individual musician break out to a
+  different key without the next refresh yanking them back; toggling it
+  back on snaps to the lead's current state.
+
+To create the Stage account: invite it like any other user from
+`/admin/invites`, accept the invitation on one iPad, copy the password
+to the other 7. Keep the role at the default `musician`.
+
 ## Security notes
 
 - The service role key is only used in `src/server/...` and never imported by client code. CI greps the production bundle for `service_role` and fails if present.
