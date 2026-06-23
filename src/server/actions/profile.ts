@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
 import { ValidationError } from '@/server/auth/errors';
-import { requireRole } from '@/server/auth/require';
+import { requireRole, type Session } from '@/server/auth/require';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import {
@@ -16,6 +16,7 @@ import {
   adminUpdateUserDisplayNameInput,
   adminUpdateUserEmailInput,
   adminResetUserPasswordInput,
+  adminDisableUserInput,
   type Capability,
 } from './profile.schemas';
 
@@ -314,5 +315,58 @@ export async function adminGetUserDetail(userId: string): Promise<AdminUserDetai
     email_confirmed_at: userRes.data.user?.email_confirmed_at ?? null,
     last_sign_in_at: userRes.data.user?.last_sign_in_at ?? null,
     capabilities: (capsRes.data ?? []).map((c) => c.capability as Capability),
+  };
+}
+
+// ===========================================================================
+// Soft-delete (deactivate) — one-way action
+// ===========================================================================
+
+export interface AdminDisableUserDeps {
+  requireAdmin: () => Promise<Session>;
+  db: {
+    getProfileRole(user_id: string): Promise<'admin' | 'leader' | 'viewer' | null>;
+    countActiveAdmins(): Promise<number>;
+    banUser(user_id: string, ban_duration: string): Promise<void>;
+    markProfileDisabled(user_id: string, disabled_at_iso: string): Promise<void>;
+    futurePlaylistIds(): Promise<string[]>;
+    deleteAssignments(member_id: string, playlist_ids: string[]): Promise<void>;
+    writeAudit(input: {
+      actorId: string;
+      action: string;
+      targetType: string;
+      targetId: string;
+      metadata: Record<string, unknown>;
+    }): Promise<void>;
+  };
+}
+
+const PERMANENT_BAN_DURATION = '876000h'; // ~100 years; Supabase has no 'infinity'
+
+export function makeAdminDisableUser(deps: AdminDisableUserDeps) {
+  return async function adminDisableUser(
+    rawInput: z.input<typeof adminDisableUserInput>,
+  ) {
+    const session = await deps.requireAdmin();
+    const parsed = adminDisableUserInput.safeParse(rawInput);
+    if (!parsed.success) throw new ValidationError(parsed.error.flatten());
+
+    const { user_id } = parsed.data;
+
+    await deps.db.banUser(user_id, PERMANENT_BAN_DURATION);
+    await deps.db.markProfileDisabled(user_id, new Date().toISOString());
+
+    const playlistIds = await deps.db.futurePlaylistIds();
+    await deps.db.deleteAssignments(user_id, playlistIds);
+
+    await deps.db.writeAudit({
+      actorId: session.profile.id,
+      action: 'profile.disabled',
+      targetType: 'profile',
+      targetId: user_id,
+      metadata: {},
+    });
+
+    return { ok: true };
   };
 }
