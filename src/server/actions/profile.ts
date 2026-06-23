@@ -357,6 +357,16 @@ export function makeAdminDisableUser(deps: AdminDisableUserDeps) {
       throw new ValidationError({ form: ['Cannot disable yourself.'] });
     }
 
+    const targetRole = await deps.db.getProfileRole(user_id);
+    if (targetRole === 'admin') {
+      const remaining = await deps.db.countActiveAdmins();
+      if (remaining <= 1) {
+        throw new ValidationError({
+          form: ['Cannot disable the last active admin.'],
+        });
+      }
+    }
+
     await deps.db.banUser(user_id, PERMANENT_BAN_DURATION);
     await deps.db.markProfileDisabled(user_id, new Date().toISOString());
 

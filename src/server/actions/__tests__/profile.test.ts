@@ -81,4 +81,42 @@ describe('adminDisableUser', () => {
     expect(db.banUser).not.toHaveBeenCalled();
     expect(db.markProfileDisabled).not.toHaveBeenCalled();
   });
+
+  it('throws ValidationError when target is the last active admin', async () => {
+    const TARGET = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
+    const { db } = makeFakes({ targetRole: 'admin', activeAdminCount: 1 });
+    const action = makeAdminDisableUser({
+      requireAdmin: async () => adminSession,
+      db,
+    });
+
+    await expect(action({ user_id: TARGET }))
+      .rejects.toBeInstanceOf(ValidationError);
+
+    expect(db.banUser).not.toHaveBeenCalled();
+    expect(db.markProfileDisabled).not.toHaveBeenCalled();
+  });
+
+  it('allows disabling an admin when other active admins remain', async () => {
+    const TARGET = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
+    const { db, bans } = makeFakes({ targetRole: 'admin', activeAdminCount: 2 });
+    const action = makeAdminDisableUser({
+      requireAdmin: async () => adminSession,
+      db,
+    });
+
+    await action({ user_id: TARGET });
+    expect(bans).toHaveLength(1);
+  });
+
+  it('does not check admin count when target is not an admin', async () => {
+    const TARGET = '9ddd5d0c-3f0d-4a8b-8a43-eb8fe87f6c00';
+    const { db } = makeFakes({ targetRole: 'viewer' });
+    const action = makeAdminDisableUser({
+      requireAdmin: async () => adminSession,
+      db,
+    });
+    await action({ user_id: TARGET });
+    expect(db.countActiveAdmins).not.toHaveBeenCalled();
+  });
 });
