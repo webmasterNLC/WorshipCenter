@@ -78,10 +78,7 @@ export default async function AdminUserDetailPage({ params, searchParams }: Page
     const result = await runAction(() =>
       adminDisableUser({ user_id: String(form.get('user_id') ?? '') }),
     );
-    if (result.ok) {
-      redirect('/admin/users?ok=user-disabled');
-    }
-    redirect(`/admin/users/${id}?err=disable-fail`);
+    redirect(result.ok ? '/admin/users?ok=user-disabled' : `/admin/users/${id}?err=disable-fail`);
   }
 
   return (

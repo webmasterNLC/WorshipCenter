@@ -456,6 +456,8 @@ export async function adminDisableUser(
         if (error) throw new Error(`markProfileDisabled failed: ${error.message}`);
       },
       async futurePlaylistIds() {
+        // playlists.scheduled_for is a date (not timestamptz), so compare to
+        // YYYY-MM-DD — avoids timezone footguns and keeps the day boundary clean.
         const today = new Date().toISOString().slice(0, 10);
         const { data, error } = await sbAdmin
           .from('playlists')
