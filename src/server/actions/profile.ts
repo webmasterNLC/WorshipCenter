@@ -384,3 +384,76 @@ export function makeAdminDisableUser(deps: AdminDisableUserDeps) {
     return { ok: true };
   };
 }
+
+export async function adminDisableUser(
+  rawInput: z.input<typeof adminDisableUserInput>,
+) {
+  const sbAdmin = createSupabaseAdminClient();
+  const action = makeAdminDisableUser({
+    requireAdmin: () => requireRole('admin'),
+    db: {
+      async getProfileRole(user_id) {
+        const { data, error } = await sbAdmin
+          .from('profiles')
+          .select('role')
+          .eq('id', user_id)
+          .maybeSingle();
+        if (error) throw new Error(`getProfileRole failed: ${error.message}`);
+        return (data?.role ?? null) as 'admin' | 'leader' | 'viewer' | null;
+      },
+      async countActiveAdmins() {
+        const { count, error } = await sbAdmin
+          .from('profiles')
+          .select('id', { count: 'exact', head: true })
+          .eq('role', 'admin')
+          .is('disabled_at', null);
+        if (error) throw new Error(`countActiveAdmins failed: ${error.message}`);
+        return count ?? 0;
+      },
+      async banUser(user_id, ban_duration) {
+        const { error } = await sbAdmin.auth.admin.updateUserById(user_id, {
+          ban_duration,
+        });
+        if (error) throw new Error(`banUser failed: ${error.message}`);
+      },
+      async markProfileDisabled(user_id, disabled_at_iso) {
+        const { error } = await sbAdmin
+          .from('profiles')
+          .update({ disabled_at: disabled_at_iso })
+          .eq('id', user_id);
+        if (error) throw new Error(`markProfileDisabled failed: ${error.message}`);
+      },
+      async futurePlaylistIds() {
+        const today = new Date().toISOString().slice(0, 10);
+        const { data, error } = await sbAdmin
+          .from('playlists')
+          .select('id')
+          .gte('scheduled_for', today);
+        if (error) throw new Error(`futurePlaylistIds failed: ${error.message}`);
+        return (data ?? []).map((r) => r.id as string);
+      },
+      async deleteAssignments(member_id, playlist_ids) {
+        if (playlist_ids.length === 0) return;
+        const { error } = await sbAdmin
+          .from('service_assignments')
+          .delete()
+          .eq('member_id', member_id)
+          .in('playlist_id', playlist_ids);
+        if (error) throw new Error(`deleteAssignments failed: ${error.message}`);
+      },
+      async writeAudit({ actorId, action, targetType, targetId, metadata }) {
+        const { error } = await sbAdmin.rpc('write_audit', {
+          p_actor: actorId,
+          p_action: action,
+          p_target_type: targetType,
+          p_target_id: targetId,
+          p_metadata: metadata,
+        });
+        if (error) throw new Error(`writeAudit failed: ${error.message}`);
+      },
+    },
+  });
+  const result = await action(rawInput);
+  revalidatePath('/admin/users');
+  return result;
+}
