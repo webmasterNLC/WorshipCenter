@@ -67,4 +67,18 @@ describe('adminDisableUser', () => {
       targetId: TARGET,
     });
   });
+
+  it('throws ValidationError when admin tries to disable themselves', async () => {
+    const { db } = makeFakes();
+    const action = makeAdminDisableUser({
+      requireAdmin: async () => adminSession,
+      db,
+    });
+
+    await expect(action({ user_id: ADMIN_ID }))
+      .rejects.toBeInstanceOf(ValidationError);
+
+    expect(db.banUser).not.toHaveBeenCalled();
+    expect(db.markProfileDisabled).not.toHaveBeenCalled();
+  });
 });

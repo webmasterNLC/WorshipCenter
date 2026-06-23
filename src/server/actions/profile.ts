@@ -353,6 +353,10 @@ export function makeAdminDisableUser(deps: AdminDisableUserDeps) {
 
     const { user_id } = parsed.data;
 
+    if (user_id === session.profile.id) {
+      throw new ValidationError({ form: ['Cannot disable yourself.'] });
+    }
+
     await deps.db.banUser(user_id, PERMANENT_BAN_DURATION);
     await deps.db.markProfileDisabled(user_id, new Date().toISOString());
 
