@@ -19,7 +19,7 @@ Worship songs, chords, and setlists for NLC Burgdorf.
 - Node 22 (`.nvmrc` is set; run `nvm use`)
 - `pnpm` 9+
 - Docker (for the local Supabase stack)
-- Supabase CLI (`pnpm exec supabase --version`)
+- Supabase CLI — install globally: `brew install supabase/tap/supabase` (or see [supabase.com/docs/guides/local-development/cli/getting-started](https://supabase.com/docs/guides/local-development/cli/getting-started)). Verify with `supabase --version`.
 
 ## Setup
 
