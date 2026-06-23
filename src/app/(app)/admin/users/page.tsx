@@ -34,9 +34,20 @@ async function revokeInviteAction(formData: FormData) {
   await revokeInvitation({ id: String(formData.get('id') ?? '') });
 }
 
-export default async function AdminMembersPage() {
+interface AdminMembersPageProps {
+  searchParams: Promise<{ ok?: string }>;
+}
+
+const BANNERS: Record<string, { tone: 'ok' | 'err'; text: string }> = {
+  'user-disabled': { tone: 'ok', text: 'Member deactivated. They can no longer log in.' },
+};
+
+export default async function AdminMembersPage({ searchParams }: AdminMembersPageProps) {
   const session = await loadSession();
   if (!session) return null;
+
+  const { ok } = await searchParams;
+  const banner = ok ? BANNERS[ok] : null;
 
   const [members, pending] = await Promise.all([
     listMembersForAdmin(),
@@ -59,6 +70,18 @@ export default async function AdminMembersPage() {
           {pending.length} pending {pending.length === 1 ? 'invitation' : 'invitations'}
         </p>
       </header>
+
+      {banner && (
+        <div
+          className={`rounded-xl border px-4 py-3 text-sm ${
+            banner.tone === 'ok'
+              ? 'border-(--color-accent)/40 bg-(--color-accent)/10 text-(--color-fg)'
+              : 'border-(--color-danger)/40 bg-(--color-danger)/10 text-(--color-danger)'
+          }`}
+        >
+          {banner.text}
+        </div>
+      )}
 
       {/* Invite section */}
       <section className="grid gap-4 rounded-2xl border border-(--color-border) bg-(--color-muted)/30 p-5">
