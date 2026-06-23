@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ForbiddenError, ValidationError } from '@/server/auth/errors';
-import { makeAdminDisableUser } from '../profile';
+import { makeAdminDisableUser, makeListMembersForAdmin } from '../profile';
 
 const ADMIN_ID = '00000000-0000-4000-a000-000000000001';
 const adminSession = {
@@ -131,5 +131,26 @@ describe('adminDisableUser', () => {
       .rejects.toBeInstanceOf(ForbiddenError);
 
     expect(db.banUser).not.toHaveBeenCalled();
+  });
+});
+
+describe('listMembersForAdmin', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('passes through active members from the db layer (filter lives in wired wrapper)', async () => {
+    const fetchActiveMembers = vi.fn(async () => [
+      { id: 'u1', display_name: 'Alice', role: 'leader' as const, created_at: '2026-01-01' },
+    ]);
+    const fetchCapabilities = vi.fn(async () => []);
+    const list = makeListMembersForAdmin({
+      requireAdmin: async () => adminSession,
+      db: { fetchActiveMembers, fetchCapabilities },
+    });
+
+    const result = await list();
+    expect(fetchActiveMembers).toHaveBeenCalledOnce();
+    expect(result).toEqual([
+      { id: 'u1', display_name: 'Alice', role: 'leader', created_at: '2026-01-01', capabilities: [] },
+    ]);
   });
 });

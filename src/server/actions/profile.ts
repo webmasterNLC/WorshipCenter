@@ -110,39 +110,72 @@ export interface MemberWithCapabilities {
   capabilities: Capability[];
 }
 
-export async function listMembersForAdmin(): Promise<MemberWithCapabilities[]> {
-  await requireRole('admin');
+export interface ListMembersForAdminDeps {
+  requireAdmin: () => Promise<Session>;
+  db: {
+    fetchActiveMembers(): Promise<Array<{
+      id: string;
+      display_name: string;
+      role: 'admin' | 'leader' | 'viewer';
+      created_at: string;
+    }>>;
+    fetchCapabilities(): Promise<Array<{ profile_id: string; capability: Capability }>>;
+  };
+}
 
-  // Use admin client to bypass RLS for the listing — same pattern as
-  // /admin/users uses today.
-  const sb = createSupabaseAdminClient();
-
-  const [{ data: profiles, error: profErr }, { data: caps, error: capErr }] =
-    await Promise.all([
-      sb.from('profiles')
-        .select('id, display_name, role, created_at')
-        .order('created_at', { ascending: false }),
-      sb.from('profile_capabilities')
-        .select('profile_id, capability'),
+export function makeListMembersForAdmin(deps: ListMembersForAdminDeps) {
+  return async function listMembersForAdmin(): Promise<MemberWithCapabilities[]> {
+    await deps.requireAdmin();
+    const [profiles, caps] = await Promise.all([
+      deps.db.fetchActiveMembers(),
+      deps.db.fetchCapabilities(),
     ]);
 
-  if (profErr) throw new Error(profErr.message);
-  if (capErr) throw new Error(capErr.message);
+    const capsByProfile = new Map<string, Capability[]>();
+    for (const c of caps) {
+      const arr = capsByProfile.get(c.profile_id) ?? [];
+      arr.push(c.capability);
+      capsByProfile.set(c.profile_id, arr);
+    }
 
-  const capsByProfile = new Map<string, Capability[]>();
-  for (const c of caps ?? []) {
-    const arr = capsByProfile.get(c.profile_id) ?? [];
-    arr.push(c.capability as Capability);
-    capsByProfile.set(c.profile_id, arr);
-  }
+    return profiles.map((p) => ({
+      id: p.id,
+      display_name: p.display_name,
+      role: p.role,
+      created_at: p.created_at,
+      capabilities: capsByProfile.get(p.id) ?? [],
+    }));
+  };
+}
 
-  return (profiles ?? []).map((p) => ({
-    id: p.id,
-    display_name: p.display_name,
-    role: p.role as 'admin' | 'leader' | 'viewer',
-    created_at: p.created_at,
-    capabilities: capsByProfile.get(p.id) ?? [],
-  }));
+export async function listMembersForAdmin(): Promise<MemberWithCapabilities[]> {
+  const sb = createSupabaseAdminClient();
+  return makeListMembersForAdmin({
+    requireAdmin: () => requireRole('admin'),
+    db: {
+      async fetchActiveMembers() {
+        const { data, error } = await sb
+          .from('profiles')
+          .select('id, display_name, role, created_at')
+          .is('disabled_at', null)
+          .order('created_at', { ascending: false });
+        if (error) throw new Error(error.message);
+        return (data ?? []) as Array<{
+          id: string;
+          display_name: string;
+          role: 'admin' | 'leader' | 'viewer';
+          created_at: string;
+        }>;
+      },
+      async fetchCapabilities() {
+        const { data, error } = await sb
+          .from('profile_capabilities')
+          .select('profile_id, capability');
+        if (error) throw new Error(error.message);
+        return (data ?? []) as Array<{ profile_id: string; capability: Capability }>;
+      },
+    },
+  })();
 }
 
 // ===========================================================================
