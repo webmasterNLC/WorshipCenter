@@ -119,4 +119,17 @@ describe('adminDisableUser', () => {
     await action({ user_id: TARGET });
     expect(db.countActiveAdmins).not.toHaveBeenCalled();
   });
+
+  it('rejects callers who are not admin (via requireAdmin)', async () => {
+    const TARGET = 'a3d72e7b-8a3e-4f3d-8b3a-a4c8e1f7d4b2';
+    const { db } = makeFakes();
+    const action = makeAdminDisableUser({
+      requireAdmin: async () => { throw new ForbiddenError(); },
+      db,
+    });
+    await expect(action({ user_id: TARGET }))
+      .rejects.toBeInstanceOf(ForbiddenError);
+
+    expect(db.banUser).not.toHaveBeenCalled();
+  });
 });
