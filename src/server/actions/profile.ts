@@ -189,8 +189,14 @@ export async function updateMyEmail(rawInput: z.input<typeof updateMyEmailInput>
   // Supabase sends a confirmation email to the NEW address; the change isn't
   // active until that link is clicked. With "secure email change" enabled in
   // the Supabase dashboard, an email is also sent to the OLD address.
+  // Point the confirmation link at /api/auth/callback so the PKCE code is
+  // exchanged (the default would land on the site root, where nothing runs).
+  const origin = process.env.APP_ORIGIN ?? 'http://localhost:3000';
   const sb = await createSupabaseServerClient();
-  const { error } = await sb.auth.updateUser({ email: parsed.data.email });
+  const { error } = await sb.auth.updateUser(
+    { email: parsed.data.email },
+    { emailRedirectTo: `${origin}/api/auth/callback?next=/me` },
+  );
   if (error) throw new Error(error.message);
 
   const sbAdmin = createSupabaseAdminClient();

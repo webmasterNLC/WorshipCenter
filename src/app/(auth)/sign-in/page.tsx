@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 async function signInAction(formData: FormData) {
@@ -95,6 +96,12 @@ export default async function SignInPage({
           Sign in
         </button>
       </form>
+      <Link
+        href="/forgot-password"
+        className="mt-4 inline-block text-sm text-(--color-muted-fg) hover:text-(--color-accent)"
+      >
+        Forgot password?
+      </Link>
     </>
   );
 }
