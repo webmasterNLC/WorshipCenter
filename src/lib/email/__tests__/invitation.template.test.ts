@@ -13,6 +13,6 @@ describe('renderInvitationEmail', () => {
     expect(out.html).toContain('Lisa &lt;Maria&gt;');
     expect(out.html).toContain('token=&lt;abc&gt;&amp;role=admin');
     expect(out.text).toContain('https://example.org/accept?token=<abc>&role=admin'); // raw in text is fine
-    expect(out.text).toContain('leader');
+    expect(out.text).toContain('Leiter'); // role rendered with its German label
   });
 });
