@@ -15,7 +15,7 @@ export function renderInvitationEmail(input: InvitationEmailInput): {
   const { acceptUrl, inviterName, role, expiresAt } = input;
   const expiry = expiresAt.toLocaleString('de-CH', { dateStyle: 'medium', timeStyle: 'short' });
 
-  const roleLabel = { admin: 'Administrator', leader: 'Leiter', viewer: 'Mitglied' }[role];
+  const roleLabel = { admin: 'Administrator', leader: 'Worship-Leiter', viewer: 'Mitglied' }[role];
 
   const subject = `Einladung zu NLC Burgdorf SongDrop`;
 
