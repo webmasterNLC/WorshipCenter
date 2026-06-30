@@ -178,7 +178,7 @@ export default async function AdminMembersPage({ searchParams }: AdminMembersPag
       <section className="grid gap-3">
         <div className="flex items-baseline justify-between">
           <h2 className="font-display text-xl flex items-baseline gap-2">
-            <span className="numeral text-base">№ I</span>
+            <span className="section-tick" aria-hidden />
             Members
           </h2>
           <span className="text-xs uppercase tracking-[0.16em] text-(--color-muted-fg)">

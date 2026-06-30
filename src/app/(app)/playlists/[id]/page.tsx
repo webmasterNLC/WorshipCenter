@@ -151,7 +151,7 @@ export default async function PlaylistPage({ params, searchParams }: PageProps) 
         <header className="flex items-baseline justify-between gap-3">
           <div>
             <h2 className="font-display text-xl flex items-baseline gap-2">
-              <span className="numeral text-base">№</span>
+              <span className="section-tick" aria-hidden />
               Service rota
             </h2>
             <p className="text-xs text-(--color-muted-fg) mt-0.5">
@@ -194,7 +194,7 @@ export default async function PlaylistPage({ params, searchParams }: PageProps) 
       {/* Items list */}
       <section className="grid gap-3">
         <h2 className="font-display text-xl flex items-baseline gap-2">
-          <span className="numeral text-base">№</span>
+          <span className="section-tick" aria-hidden />
           Order of songs
         </h2>
         {playlist.items.length === 0 ? (
