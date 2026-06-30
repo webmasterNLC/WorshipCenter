@@ -1,10 +1,9 @@
-'use server';
 import 'server-only';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
 import { ValidationError } from '@/server/auth/errors';
-import { requireRole } from '@/server/auth/require';
+import { requireRole, type Session } from '@/server/auth/require';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import {
@@ -16,6 +15,7 @@ import {
   adminUpdateUserDisplayNameInput,
   adminUpdateUserEmailInput,
   adminResetUserPasswordInput,
+  adminDisableUserInput,
   type Capability,
 } from './profile.schemas';
 
@@ -109,39 +109,72 @@ export interface MemberWithCapabilities {
   capabilities: Capability[];
 }
 
-export async function listMembersForAdmin(): Promise<MemberWithCapabilities[]> {
-  await requireRole('admin');
+export interface ListMembersForAdminDeps {
+  requireAdmin: () => Promise<Session>;
+  db: {
+    fetchActiveMembers(): Promise<Array<{
+      id: string;
+      display_name: string;
+      role: 'admin' | 'leader' | 'viewer';
+      created_at: string;
+    }>>;
+    fetchCapabilities(): Promise<Array<{ profile_id: string; capability: Capability }>>;
+  };
+}
 
-  // Use admin client to bypass RLS for the listing — same pattern as
-  // /admin/users uses today.
-  const sb = createSupabaseAdminClient();
-
-  const [{ data: profiles, error: profErr }, { data: caps, error: capErr }] =
-    await Promise.all([
-      sb.from('profiles')
-        .select('id, display_name, role, created_at')
-        .order('created_at', { ascending: false }),
-      sb.from('profile_capabilities')
-        .select('profile_id, capability'),
+export function makeListMembersForAdmin(deps: ListMembersForAdminDeps) {
+  return async function listMembersForAdmin(): Promise<MemberWithCapabilities[]> {
+    await deps.requireAdmin();
+    const [profiles, caps] = await Promise.all([
+      deps.db.fetchActiveMembers(),
+      deps.db.fetchCapabilities(),
     ]);
 
-  if (profErr) throw new Error(profErr.message);
-  if (capErr) throw new Error(capErr.message);
+    const capsByProfile = new Map<string, Capability[]>();
+    for (const c of caps) {
+      const arr = capsByProfile.get(c.profile_id) ?? [];
+      arr.push(c.capability);
+      capsByProfile.set(c.profile_id, arr);
+    }
 
-  const capsByProfile = new Map<string, Capability[]>();
-  for (const c of caps ?? []) {
-    const arr = capsByProfile.get(c.profile_id) ?? [];
-    arr.push(c.capability as Capability);
-    capsByProfile.set(c.profile_id, arr);
-  }
+    return profiles.map((p) => ({
+      id: p.id,
+      display_name: p.display_name,
+      role: p.role,
+      created_at: p.created_at,
+      capabilities: capsByProfile.get(p.id) ?? [],
+    }));
+  };
+}
 
-  return (profiles ?? []).map((p) => ({
-    id: p.id,
-    display_name: p.display_name,
-    role: p.role as 'admin' | 'leader' | 'viewer',
-    created_at: p.created_at,
-    capabilities: capsByProfile.get(p.id) ?? [],
-  }));
+export async function listMembersForAdmin(): Promise<MemberWithCapabilities[]> {
+  const sb = createSupabaseAdminClient();
+  return makeListMembersForAdmin({
+    requireAdmin: () => requireRole('admin'),
+    db: {
+      async fetchActiveMembers() {
+        const { data, error } = await sb
+          .from('profiles')
+          .select('id, display_name, role, created_at')
+          .is('disabled_at', null)
+          .order('created_at', { ascending: false });
+        if (error) throw new Error(error.message);
+        return (data ?? []) as Array<{
+          id: string;
+          display_name: string;
+          role: 'admin' | 'leader' | 'viewer';
+          created_at: string;
+        }>;
+      },
+      async fetchCapabilities() {
+        const { data, error } = await sb
+          .from('profile_capabilities')
+          .select('profile_id, capability');
+        if (error) throw new Error(error.message);
+        return (data ?? []) as Array<{ profile_id: string; capability: Capability }>;
+      },
+    },
+  })();
 }
 
 // ===========================================================================
@@ -315,4 +348,146 @@ export async function adminGetUserDetail(userId: string): Promise<AdminUserDetai
     last_sign_in_at: userRes.data.user?.last_sign_in_at ?? null,
     capabilities: (capsRes.data ?? []).map((c) => c.capability as Capability),
   };
+}
+
+// ===========================================================================
+// Soft-delete (deactivate) — one-way action
+// ===========================================================================
+
+export interface AdminDisableUserDeps {
+  requireAdmin: () => Promise<Session>;
+  db: {
+    getProfileRole(user_id: string): Promise<'admin' | 'leader' | 'viewer' | null>;
+    countActiveAdmins(): Promise<number>;
+    banUser(user_id: string, ban_duration: string): Promise<void>;
+    markProfileDisabled(user_id: string, disabled_at_iso: string): Promise<void>;
+    futurePlaylistIds(): Promise<string[]>;
+    deleteAssignments(member_id: string, playlist_ids: string[]): Promise<void>;
+    writeAudit(input: {
+      actorId: string;
+      action: string;
+      targetType: string;
+      targetId: string;
+      metadata: Record<string, unknown>;
+    }): Promise<void>;
+  };
+}
+
+const PERMANENT_BAN_DURATION = '876000h'; // ~100 years; Supabase has no 'infinity'
+
+export function makeAdminDisableUser(deps: AdminDisableUserDeps) {
+  return async function adminDisableUser(
+    rawInput: z.input<typeof adminDisableUserInput>,
+  ) {
+    const session = await deps.requireAdmin();
+    const parsed = adminDisableUserInput.safeParse(rawInput);
+    if (!parsed.success) throw new ValidationError(parsed.error.flatten());
+
+    const { user_id } = parsed.data;
+
+    if (user_id === session.profile.id) {
+      throw new ValidationError({ form: ['Cannot disable yourself.'] });
+    }
+
+    const targetRole = await deps.db.getProfileRole(user_id);
+    if (targetRole === 'admin') {
+      const remaining = await deps.db.countActiveAdmins();
+      if (remaining <= 1) {
+        throw new ValidationError({
+          form: ['Cannot disable the last active admin.'],
+        });
+      }
+    }
+
+    await deps.db.banUser(user_id, PERMANENT_BAN_DURATION);
+    await deps.db.markProfileDisabled(user_id, new Date().toISOString());
+
+    const playlistIds = await deps.db.futurePlaylistIds();
+    await deps.db.deleteAssignments(user_id, playlistIds);
+
+    await deps.db.writeAudit({
+      actorId: session.profile.id,
+      action: 'profile.disabled',
+      targetType: 'profile',
+      targetId: user_id,
+      metadata: {},
+    });
+
+    return { ok: true };
+  };
+}
+
+export async function adminDisableUser(
+  rawInput: z.input<typeof adminDisableUserInput>,
+) {
+  const sbAdmin = createSupabaseAdminClient();
+  const action = makeAdminDisableUser({
+    requireAdmin: () => requireRole('admin'),
+    db: {
+      async getProfileRole(user_id) {
+        const { data, error } = await sbAdmin
+          .from('profiles')
+          .select('role')
+          .eq('id', user_id)
+          .maybeSingle();
+        if (error) throw new Error(`getProfileRole failed: ${error.message}`);
+        return (data?.role ?? null) as 'admin' | 'leader' | 'viewer' | null;
+      },
+      async countActiveAdmins() {
+        const { count, error } = await sbAdmin
+          .from('profiles')
+          .select('id', { count: 'exact', head: true })
+          .eq('role', 'admin')
+          .is('disabled_at', null);
+        if (error) throw new Error(`countActiveAdmins failed: ${error.message}`);
+        return count ?? 0;
+      },
+      async banUser(user_id, ban_duration) {
+        const { error } = await sbAdmin.auth.admin.updateUserById(user_id, {
+          ban_duration,
+        });
+        if (error) throw new Error(`banUser failed: ${error.message}`);
+      },
+      async markProfileDisabled(user_id, disabled_at_iso) {
+        const { error } = await sbAdmin
+          .from('profiles')
+          .update({ disabled_at: disabled_at_iso })
+          .eq('id', user_id);
+        if (error) throw new Error(`markProfileDisabled failed: ${error.message}`);
+      },
+      async futurePlaylistIds() {
+        // playlists.scheduled_for is a date (not timestamptz), so compare to
+        // YYYY-MM-DD — avoids timezone footguns and keeps the day boundary clean.
+        const today = new Date().toISOString().slice(0, 10);
+        const { data, error } = await sbAdmin
+          .from('playlists')
+          .select('id')
+          .gte('scheduled_for', today);
+        if (error) throw new Error(`futurePlaylistIds failed: ${error.message}`);
+        return (data ?? []).map((r) => r.id as string);
+      },
+      async deleteAssignments(member_id, playlist_ids) {
+        if (playlist_ids.length === 0) return;
+        const { error } = await sbAdmin
+          .from('service_assignments')
+          .delete()
+          .eq('member_id', member_id)
+          .in('playlist_id', playlist_ids);
+        if (error) throw new Error(`deleteAssignments failed: ${error.message}`);
+      },
+      async writeAudit({ actorId, action, targetType, targetId, metadata }) {
+        const { error } = await sbAdmin.rpc('write_audit', {
+          p_actor: actorId,
+          p_action: action,
+          p_target_type: targetType,
+          p_target_id: targetId,
+          p_metadata: metadata,
+        });
+        if (error) throw new Error(`writeAudit failed: ${error.message}`);
+      },
+    },
+  });
+  const result = await action(rawInput);
+  revalidatePath('/admin/users');
+  return result;
 }

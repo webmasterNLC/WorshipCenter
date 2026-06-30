@@ -1,10 +1,9 @@
-'use server';
 import 'server-only';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
 import { ValidationError, NotFoundError } from '@/server/auth/errors';
-import { requireRole } from '@/server/auth/require';
+import { requireRole, type Session } from '@/server/auth/require';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import {
@@ -166,34 +165,60 @@ export async function getServiceAssignments(
  * role at render time. Only callable by playlist owner or admin (since they
  * are the ones who can assign).
  */
-export async function getRotaCandidates(
-  _playlistId: string,
-): Promise<RotaCandidate[]> {
-  await requireRole('admin');
+export interface GetRotaCandidatesDeps {
+  requireAdmin: () => Promise<Session>;
+  db: {
+    fetchActiveProfiles(): Promise<Array<{ id: string; display_name: string }>>;
+    fetchCapabilities(): Promise<Array<{ profile_id: string; capability: Capability }>>;
+  };
+}
 
-  // Use admin client to bypass RLS for the listing — same pattern as
-  // listMembersForAdmin().
-  const sb = createSupabaseAdminClient();
-  const [{ data: profiles, error: profErr }, { data: caps, error: capErr }] =
-    await Promise.all([
-      sb.from('profiles').select('id, display_name').order('display_name'),
-      sb.from('profile_capabilities').select('profile_id, capability'),
+export function makeGetRotaCandidates(deps: GetRotaCandidatesDeps) {
+  return async function getRotaCandidates(_playlistId: string): Promise<RotaCandidate[]> {
+    await deps.requireAdmin();
+    const [profiles, caps] = await Promise.all([
+      deps.db.fetchActiveProfiles(),
+      deps.db.fetchCapabilities(),
     ]);
-  if (profErr) throw new Error(profErr.message);
-  if (capErr) throw new Error(capErr.message);
 
-  const capsByProfile = new Map<string, Capability[]>();
-  for (const c of caps ?? []) {
-    const arr = capsByProfile.get(c.profile_id) ?? [];
-    arr.push(c.capability as Capability);
-    capsByProfile.set(c.profile_id, arr);
-  }
+    const capsByProfile = new Map<string, Capability[]>();
+    for (const c of caps) {
+      const arr = capsByProfile.get(c.profile_id) ?? [];
+      arr.push(c.capability);
+      capsByProfile.set(c.profile_id, arr);
+    }
 
-  return (profiles ?? []).map((p) => ({
-    id: p.id as string,
-    display_name: p.display_name as string,
-    capabilities: capsByProfile.get(p.id) ?? [],
-  }));
+    return profiles.map((p) => ({
+      id: p.id,
+      display_name: p.display_name,
+      capabilities: capsByProfile.get(p.id) ?? [],
+    }));
+  };
+}
+
+export async function getRotaCandidates(playlistId: string): Promise<RotaCandidate[]> {
+  const sb = createSupabaseAdminClient();
+  return makeGetRotaCandidates({
+    requireAdmin: () => requireRole('admin'),
+    db: {
+      async fetchActiveProfiles() {
+        const { data, error } = await sb
+          .from('profiles')
+          .select('id, display_name')
+          .is('disabled_at', null)
+          .order('display_name');
+        if (error) throw new Error(error.message);
+        return (data ?? []) as Array<{ id: string; display_name: string }>;
+      },
+      async fetchCapabilities() {
+        const { data, error } = await sb
+          .from('profile_capabilities')
+          .select('profile_id, capability');
+        if (error) throw new Error(error.message);
+        return (data ?? []) as Array<{ profile_id: string; capability: Capability }>;
+      },
+    },
+  })(playlistId);
 }
 
 export interface MyDuty {

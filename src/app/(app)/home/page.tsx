@@ -55,38 +55,48 @@ export default async function HomePage() {
     });
   }
 
+  const next = stats.nextService;
+  const nextDate = next ? formatServiceDate(next.scheduled_for) : null;
+  const nextIsDuty = next ? dutiesByPlaylist.has(next.id) : false;
+
   return (
     <div className="grid gap-8 max-w-5xl">
 
-      {/* Hero greeting */}
-      <header className="grid gap-2 pt-2">
+      {/* Hero greeting + a one-line library ledger (counts demoted from hero) */}
+      <header className="grid gap-3 pt-2">
         <h1 className="font-display-tight text-5xl md:text-6xl leading-[0.95]">
           Welcome,<br/>
           <em className="not-italic text-(--color-accent) font-display-tight">{session.profile.display_name}.</em>
         </h1>
+        <p className="text-xs uppercase tracking-[0.18em] text-(--color-muted-fg) tabular-nums">
+          {stats.songCount} {stats.songCount === 1 ? 'song' : 'songs'}
+          {' · '}{stats.playlistCount} {stats.playlistCount === 1 ? 'program' : 'programs'}
+          {' · '}{stats.recentSongs.length} recent edits
+        </p>
       </header>
 
-      {/* Stats strip */}
-      <section className="grid grid-cols-3 gap-px overflow-hidden rounded-2xl border border-(--color-border) bg-(--color-border)">
-        <div className="bg-(--color-bg) p-5">
-          <div className="numeral text-5xl">{stats.songCount}</div>
-          <div className="mt-1 text-xs uppercase tracking-[0.18em] text-(--color-muted-fg)">
-            {stats.songCount === 1 ? 'Song' : 'Songs'}
+      {/* Next service — the page's most useful line, leading where vanity counts used to */}
+      {next && nextDate && (
+        <Link
+          href={`/playlists/${next.id}`}
+          className="card-lift group grid grid-cols-[auto_1fr_auto] items-center gap-5 rounded-2xl border border-(--color-accent)/40 bg-(--color-accent)/5 p-5 hover:border-(--color-accent)"
+        >
+          <div className="grid place-items-center rounded-xl border border-(--color-accent)/30 bg-(--color-bg) px-4 py-2 min-w-20 text-center">
+            <div className="text-[0.62rem] uppercase tracking-[0.2em] text-(--color-muted-fg)">{nextDate.weekday}</div>
+            <div className="numeral text-4xl mt-0.5">{nextDate.day}</div>
+            <div className="text-[0.6rem] uppercase tracking-[0.16em] text-(--color-muted-fg)">{nextDate.month.slice(0, 3)}</div>
           </div>
-        </div>
-        <div className="bg-(--color-bg) p-5">
-          <div className="numeral text-5xl">{stats.playlistCount}</div>
-          <div className="mt-1 text-xs uppercase tracking-[0.18em] text-(--color-muted-fg)">
-            {stats.playlistCount === 1 ? 'Program' : 'Programs'}
+          <div className="min-w-0">
+            <div className="text-[0.65rem] uppercase tracking-[0.22em] text-(--color-accent)">Next service</div>
+            <p className="font-display-tight text-2xl mt-1">{nextDate.weekday}, {nextDate.day} {nextDate.month}</p>
+            <p className="text-sm text-(--color-muted-fg) mt-0.5">
+              {next.item_count} {next.item_count === 1 ? 'song' : 'songs'} in the program
+              {nextIsDuty && <span className="text-(--color-accent)"> · you&apos;re on duty</span>}
+            </p>
           </div>
-        </div>
-        <div className="bg-(--color-bg) p-5">
-          <div className="numeral text-5xl">{stats.recentSongs.length}</div>
-          <div className="mt-1 text-xs uppercase tracking-[0.18em] text-(--color-muted-fg)">
-            Recent edits
-          </div>
-        </div>
-      </section>
+          <ArrowRight className="size-5 text-(--color-muted-fg) group-hover:text-(--color-accent) transition-colors" aria-hidden />
+        </Link>
+      )}
 
 
       {/* On-duty card — only when the user has upcoming assignments */}
@@ -145,8 +155,8 @@ export default async function HomePage() {
         {/* Recent songs */}
         <section className="grid gap-3">
           <div className="flex items-baseline justify-between">
-            <h2 className="font-display text-xl">
-              <span className="numeral text-base mr-2">№ I</span>
+            <h2 className="font-display text-xl flex items-baseline gap-2">
+              <span className="section-tick" aria-hidden />
               Recently edited
             </h2>
             <Link href="/songs" className="text-sm text-(--color-muted-fg) hover:text-(--color-accent)">
@@ -191,8 +201,8 @@ export default async function HomePage() {
 
         {/* Quick actions */}
         <section className="grid gap-3">
-          <h2 className="font-display text-xl">
-            <span className="numeral text-base mr-2">№ II</span>
+          <h2 className="font-display text-xl flex items-baseline gap-2">
+            <span className="section-tick" aria-hidden />
             Quick actions
           </h2>
           <div className="grid gap-2">

@@ -89,7 +89,7 @@ export function RotaBlock({
       <header className="flex items-baseline justify-between gap-3">
         <div>
           <h2 className="font-display text-xl flex items-baseline gap-2">
-            <span className="numeral text-base">№</span>
+            <span className="section-tick" aria-hidden />
             Service rota
           </h2>
           <p className="text-xs text-(--color-muted-fg) mt-0.5">

@@ -72,6 +72,18 @@
             mask: url('/nlc-logo.png') center / contain no-repeat;
   }
 
+  /* Honest section anchor — a navy tick before a heading. Replaces the old
+     decorative `№ I/II` markers, which implied an order the sections didn't
+     have. Numerals are reserved for real sequences (program running order). */
+  .section-tick {
+    display: inline-block;
+    width: 3px;
+    height: 0.8em;
+    border-radius: 1px;
+    background: var(--color-accent);
+    transform: translateY(0.04em);
+  }
+
   /* Subtle hover lift for cards. */
   .card-lift {
     transition: transform 280ms cubic-bezier(.2,.8,.2,1),

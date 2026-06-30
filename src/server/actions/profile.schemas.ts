@@ -61,3 +61,8 @@ export const adminResetUserPasswordInput = z.object({
     .max(128),
 });
 export type AdminResetUserPasswordInput = z.infer<typeof adminResetUserPasswordInput>;
+
+export const adminDisableUserInput = z.object({
+  user_id: z.string().uuid(),
+});
+export type AdminDisableUserInput = z.infer<typeof adminDisableUserInput>;

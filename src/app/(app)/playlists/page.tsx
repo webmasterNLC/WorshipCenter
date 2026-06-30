@@ -124,7 +124,7 @@ export default async function PlaylistsPage() {
       {upcoming.length > 0 && (
         <section className="grid gap-3">
           <h2 className="font-display text-xl flex items-baseline gap-2">
-            <span className="numeral text-base">№ I</span>
+            <span className="section-tick" aria-hidden />
             Upcoming
             <span className="text-xs text-(--color-muted-fg) font-sans tracking-[0.16em] uppercase">
               {upcoming.length}
@@ -139,7 +139,7 @@ export default async function PlaylistsPage() {
       {undated.length > 0 && (
         <section className="grid gap-3">
           <h2 className="font-display text-xl flex items-baseline gap-2">
-            <span className="numeral text-base">№ II</span>
+            <span className="section-tick" aria-hidden />
             Drafts
             <span className="text-xs text-(--color-muted-fg) font-sans tracking-[0.16em] uppercase">
               {undated.length}
@@ -155,7 +155,7 @@ export default async function PlaylistsPage() {
       {isAdmin && past.length > 0 && (
         <section className="grid gap-3">
           <h2 className="font-display text-xl flex items-baseline gap-2">
-            <span className="numeral text-base">№ III</span>
+            <span className="section-tick" aria-hidden />
             Past services
             <span className="text-xs text-(--color-muted-fg) font-sans tracking-[0.16em] uppercase">
               {past.length}

@@ -1,33 +1,36 @@
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, User, Mail, KeyRound, Trash2 } from 'lucide-react';
+import { ArrowLeft, User, Mail, KeyRound, Ban } from 'lucide-react';
 import {
   adminGetUserDetail,
   adminUpdateUserDisplayName,
   adminUpdateUserEmail,
   adminResetUserPassword,
+  adminDisableUser,
 } from '@/server/actions/profile';
 import { runAction } from '@/server/actions/_action-result';
 import { loadSession } from '@/server/auth/require';
 
 interface PageProps {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ ok?: string; err?: string }>;
+  searchParams: Promise<{ ok?: string; err?: string; confirm?: string }>;
 }
 
 const BANNERS: Record<string, { tone: 'ok' | 'err'; text: string }> = {
-  'name-saved':  { tone: 'ok',  text: 'Display name updated.' },
-  'email-saved': { tone: 'ok',  text: 'Email updated immediately (no confirmation sent).' },
-  'pw-saved':    { tone: 'ok',  text: 'Password updated. Tell the user the new credentials securely.' },
-  'name-fail':   { tone: 'err', text: 'Could not update display name.' },
-  'email-fail':  { tone: 'err', text: 'Could not update email — check the address and try again.' },
-  'pw-fail':     { tone: 'err', text: 'Could not update password — must be at least 12 characters.' },
+  'name-saved':    { tone: 'ok',  text: 'Display name updated.' },
+  'email-saved':   { tone: 'ok',  text: 'Email updated immediately (no confirmation sent).' },
+  'pw-saved':      { tone: 'ok',  text: 'Password updated. Tell the user the new credentials securely.' },
+  'name-fail':     { tone: 'err', text: 'Could not update display name.' },
+  'email-fail':    { tone: 'err', text: 'Could not update email — check the address and try again.' },
+  'pw-fail':       { tone: 'err', text: 'Could not update password — must be at least 12 characters.' },
+  'disable-fail':  { tone: 'err', text: 'Could not deactivate this user.' },
 };
 
 export default async function AdminUserDetailPage({ params, searchParams }: PageProps) {
   const { id } = await params;
-  const { ok, err } = await searchParams;
+  const { ok, err, confirm } = await searchParams;
   const banner = ok ? BANNERS[ok] : err ? BANNERS[err] : null;
+  const confirmDisable = confirm === 'disable';
 
   const [user, session] = await Promise.all([
     adminGetUserDetail(id),
@@ -68,6 +71,14 @@ export default async function AdminUserDetailPage({ params, searchParams }: Page
       }),
     );
     redirect(`/admin/users/${id}?${result.ok ? 'ok=pw-saved' : 'err=pw-fail'}`);
+  }
+
+  async function disableAction(form: FormData) {
+    'use server';
+    const result = await runAction(() =>
+      adminDisableUser({ user_id: String(form.get('user_id') ?? '') }),
+    );
+    redirect(result.ok ? '/admin/users?ok=user-disabled' : `/admin/users/${id}?err=disable-fail`);
   }
 
   return (
@@ -204,10 +215,59 @@ export default async function AdminUserDetailPage({ params, searchParams }: Page
         </form>
       </section>
 
-      <p className="text-xs text-(--color-muted-fg) flex items-center gap-1.5">
-        <Trash2 className="size-3" aria-hidden />
-        To remove a member entirely, ask Supabase support or delete via Dashboard → Auth → Users.
-      </p>
+      {/* Danger zone — soft-delete (one-way from UI) */}
+      <section className="grid gap-3 rounded-2xl border border-(--color-danger)/40 p-5">
+        <div className="flex items-center gap-3">
+          <span className="grid size-9 place-items-center rounded-lg bg-(--color-danger)/10 text-(--color-danger)">
+            <Ban className="size-4" aria-hidden />
+          </span>
+          <div>
+            <h2 className="font-display text-lg">Deactivate account</h2>
+            <p className="text-xs text-(--color-muted-fg)">
+              Blocks login, removes this member from the admin list and rota
+              picker, and clears them from upcoming service assignments. Past
+              assignments and audit history are preserved. To reverse, contact a
+              developer — there is no UI for it.
+            </p>
+          </div>
+        </div>
+        {isSelf ? (
+          <p className="text-xs text-(--color-muted-fg)">
+            You cannot deactivate yourself.
+          </p>
+        ) : confirmDisable ? (
+          <div className="grid gap-3 rounded-xl border-2 border-(--color-danger) bg-(--color-danger)/5 p-4">
+            <p className="text-sm">
+              <strong>Confirm:</strong> deactivate <em>{user.display_name}</em>?
+              This is one-way from the UI.
+            </p>
+            <div className="flex gap-2">
+              <form action={disableAction}>
+                <input type="hidden" name="user_id" value={user.id} />
+                <button
+                  type="submit"
+                  className="rounded-lg bg-(--color-danger) text-white px-4 py-2 text-sm font-medium hover:opacity-90"
+                >
+                  Yes, deactivate
+                </button>
+              </form>
+              <Link
+                href={`/admin/users/${user.id}`}
+                className="rounded-lg border border-(--color-border) px-4 py-2 text-sm hover:border-(--color-accent)"
+              >
+                Cancel
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <Link
+            href={`/admin/users/${user.id}?confirm=disable`}
+            className="rounded-lg border border-(--color-danger)/40 text-(--color-danger) px-4 py-2 text-sm font-medium hover:bg-(--color-danger)/10 self-start"
+          >
+            Deactivate {user.display_name}
+          </Link>
+        )}
+      </section>
     </div>
   );
 }
