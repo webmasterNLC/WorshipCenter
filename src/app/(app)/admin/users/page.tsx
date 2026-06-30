@@ -12,6 +12,7 @@ import {
   revokeInvitation,
 } from '@/server/actions/invitations';
 import { CapabilityChips } from '@/components/admin/CapabilityChips';
+import type { Capability } from '@/server/actions/profile.schemas';
 
 async function changeRoleAction(formData: FormData) {
   'use server';
@@ -32,6 +33,17 @@ async function sendInviteAction(formData: FormData) {
 async function revokeInviteAction(formData: FormData) {
   'use server';
   await revokeInvitation({ id: String(formData.get('id') ?? '') });
+}
+
+// toggleCapability is a plain server-only helper, so it can't be handed to a
+// client component directly — wrap it as a server action, like the others.
+async function toggleCapabilityAction(input: {
+  user_id: string;
+  capability: Capability;
+  enabled: boolean;
+}) {
+  'use server';
+  await toggleCapability(input);
 }
 
 interface AdminMembersPageProps {
@@ -224,7 +236,7 @@ export default async function AdminMembersPage({ searchParams }: AdminMembersPag
                     <CapabilityChips
                       userId={m.id}
                       initial={m.capabilities}
-                      toggle={toggleCapability}
+                      toggle={toggleCapabilityAction}
                     />
                   </div>
                 </div>
