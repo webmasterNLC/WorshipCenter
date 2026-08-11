@@ -1,9 +1,15 @@
 import { notFound, redirect } from 'next/navigation';
 import { requireRole } from '@/server/auth/require';
-import { getSong, updateSong, deleteSong } from '@/server/actions/songs';
+import { getSong, updateSong, deleteSong, transposeSongToKey } from '@/server/actions/songs';
 import { runAction } from '@/server/actions/_action-result';
 import { SongEditor } from '@/components/editor/SongEditor';
 import { DeleteSongButton } from '@/components/songs/DeleteSongButton';
+
+// One name per pitch class, spelled the way charts conventionally do it —
+// Eb rather than D#, because the stored name also decides whether the whole
+// chart comes out in flats or sharps (detectKeyAccidental).
+const MAJOR_KEYS = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'] as const;
+const MINOR_KEYS = ['Cm', 'C#m', 'Dm', 'Ebm', 'Em', 'Fm', 'F#m', 'Gm', 'G#m', 'Am', 'Bbm', 'Bm'] as const;
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -68,6 +74,17 @@ export default async function EditSongPage({ params, searchParams }: PageProps) 
     redirect('/songs');
   }
 
+  async function rebaseKeyAction(form: FormData) {
+    'use server';
+    const result = await runAction(() =>
+      transposeSongToKey({ id, key: String(form.get('key') ?? '') }),
+    );
+    if (!result.ok) {
+      redirect(`/songs/${id}/edit?error=${encodeURIComponent(result.error.code)}`);
+    }
+    redirect(`/songs/${id}`);
+  }
+
   const initialValues = {
     original_key: song.original_key,
     bpm: song.bpm,
@@ -99,6 +116,50 @@ export default async function EditSongPage({ params, searchParams }: PageProps) 
         action={editSongAction}
         errorCode={error ?? null}
       />
+
+      <section className="grid gap-3 rounded-2xl border border-(--color-border) p-5">
+        <div>
+          <h2 className="font-display text-lg">Transpose chart</h2>
+          <p className="text-sm text-(--color-muted-fg)">
+            Rewrites the chords so the chart is stored in the key you pick.
+            Programs show a song at its stored key by default, so put it in the
+            key the band actually plays.
+          </p>
+        </div>
+        <p className="text-xs text-(--color-muted-fg)">
+          Currently stored in <strong>{song.original_key}</strong>
+          {song.imported_key
+            ? ` · imported in ${song.imported_key}`
+            : ' · never transposed'}
+          . This is different from the Key field above, which only relabels a
+          wrongly detected key without moving any chords.
+        </p>
+        <form action={rebaseKeyAction} className="flex flex-wrap items-center gap-2">
+          <select
+            name="key"
+            defaultValue={song.original_key}
+            className="rounded-lg border border-(--color-border) bg-(--color-bg) px-3 py-2 text-sm"
+            aria-label="Target key"
+          >
+            {(song.original_key.endsWith('m') ? MINOR_KEYS : MAJOR_KEYS).map((k) => (
+              <option key={k} value={k}>
+                {k}
+              </option>
+            ))}
+          </select>
+          <button
+            type="submit"
+            className="rounded-lg border border-(--color-border) px-4 py-2 text-sm font-medium hover:border-(--color-accent) hover:text-(--color-accent)"
+          >
+            Transpose
+          </button>
+        </form>
+        <p className="text-xs text-(--color-muted-fg)">
+          A program&apos;s transpose setting is an offset from the stored key, so
+          any program already using this song shifts by the same amount. Worth a
+          look afterwards if it is on an upcoming setlist.
+        </p>
+      </section>
 
       <section className="grid gap-2 rounded-2xl border border-(--color-danger)/30 p-5 mt-2">
         <h2 className="text-xs uppercase tracking-[0.22em] text-(--color-danger)">

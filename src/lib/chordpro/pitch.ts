@@ -35,3 +35,23 @@ export function detectKeyAccidental(key: string): Accidental {
 export function normalizeSemitones(n: number): PitchClass {
   return ((n % 12) + 12) % 12;
 }
+
+/**
+ * Signed distance from one key to another, by the shorter way round.
+ *
+ * G→C is +5 (up a fourth) rather than -7 (down a fifth): same pitch class,
+ * but the small number is the one a musician would say out loud, and it keeps
+ * the result inside the ±12 range the transpose controls accept.
+ *
+ * Minor keys are compared by their root, so Am→Cm is the same +3 as A→C.
+ * Returns null when either key is unparseable rather than guessing zero —
+ * a silent 0 would look like "already in the right key".
+ */
+export function semitonesBetweenKeys(from: string, to: string): number | null {
+  const rootOf = (k: string) => (k.endsWith('m') ? k.slice(0, -1) : k);
+  const a = pitchClassFromRoot(rootOf(from));
+  const b = pitchClassFromRoot(rootOf(to));
+  if (a === null || b === null) return null;
+  const up = normalizeSemitones(b - a);
+  return up > 6 ? up - 12 : up;
+}

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   pitchClassFromRoot, rootFromPitchClass, detectKeyAccidental, normalizeSemitones,
+  semitonesBetweenKeys,
 } from '../pitch';
 
 describe('pitchClassFromRoot', () => {
@@ -60,5 +61,35 @@ describe('normalizeSemitones', () => {
     [0, 0], [12, 0], [-12, 0], [13, 1], [-1, 11], [-13, 11], [25, 1],
   ])('%i -> %i', (n, expected) => {
     expect(normalizeSemitones(n)).toBe(expected);
+  });
+});
+
+describe('semitonesBetweenKeys', () => {
+  it.each([
+    ['E', 'C', -4],   // the case that started this: The Blessing into the band's key
+    ['G', 'C', 5],    // up a fourth, not down a fifth
+    ['C', 'C', 0],
+    ['C', 'B', -1],
+    ['C', 'D', 2],
+    ['Am', 'Cm', 3],  // minor keys compare by root
+    ['Bb', 'C', 2],
+    ['F#', 'C', 6],   // tritone resolves upward
+  ])('%s -> %s = %i', (from, to, expected) => {
+    expect(semitonesBetweenKeys(from, to)).toBe(expected);
+  });
+
+  it('always picks the shorter way round', () => {
+    for (const from of ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'Eb', 'F#']) {
+      for (const to of ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'Eb', 'F#']) {
+        const d = semitonesBetweenKeys(from, to)!;
+        expect(d).toBeGreaterThanOrEqual(-5);
+        expect(d).toBeLessThanOrEqual(6);
+      }
+    }
+  });
+
+  it('returns null for an unparseable key rather than a misleading 0', () => {
+    expect(semitonesBetweenKeys('H', 'C')).toBeNull();
+    expect(semitonesBetweenKeys('C', '')).toBeNull();
   });
 });

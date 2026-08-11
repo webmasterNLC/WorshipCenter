@@ -3,5 +3,6 @@ export { transposeChord, transposeChordPro, transposeKey } from './transpose';
 export { renderToBlocks, type RenderBlock, type RenderSegment } from './render';
 export {
   detectKeyAccidental, normalizeSemitones, pitchClassFromRoot, rootFromPitchClass,
+  semitonesBetweenKeys,
   type Accidental, type PitchClass,
 } from './pitch';

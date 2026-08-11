@@ -44,6 +44,18 @@ export const createSongInput = z.object({
 });
 export type CreateSongInput = z.infer<typeof createSongInput>;
 
+/**
+ * Rebase a song into the band's key: rewrites the chart, not just its label.
+ * Separate from updateSong.original_key on purpose — that one relabels a
+ * mis-detected import, this one transposes. Conflating them would make it
+ * impossible to tell "the key was read wrong" from "put this in our key".
+ */
+export const transposeSongToKeyInput = z.object({
+  id: z.string().uuid(),
+  key: z.string().regex(/^[A-G](#|b)?m?$/),
+});
+export type TransposeSongToKeyInput = z.infer<typeof transposeSongToKeyInput>;
+
 export const updateSongInput = z.object({
   original_key: z.string().regex(/^[A-G](#|b)?m?$/).optional(),
   bpm: z.number().int().min(30).max(300).optional(),

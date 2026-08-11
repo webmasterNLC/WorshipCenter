@@ -6,10 +6,12 @@ import { ValidationError } from '@/server/auth/errors';
 import { requireRole, type Session } from '@/server/auth/require';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import { transposeChordPro, semitonesBetweenKeys, detectKeyAccidental } from '@/lib/chordpro';
 import {
   createSongInput,
   updateSongInput,
   songIdInput,
+  transposeSongToKeyInput,
   type SongTranslationInput,
 } from './songs.schemas';
 
@@ -264,6 +266,8 @@ export interface SongDetail {
   language: 'de' | 'en' | 'ta';
   body_chordpro: string;
   original_key: string;
+  /** Key the chart arrived in, before any rebase. Null = never rebased. */
+  imported_key: string | null;
   bpm: number | null;
   time_signature: string | null;
   notes: string | null;
@@ -305,6 +309,7 @@ export async function getSong(id: string): Promise<SongDetail | null> {
     language: data.language as 'de' | 'en' | 'ta',
     body_chordpro: data.body_chordpro as string,
     original_key: data.original_key as string,
+    imported_key: (data.imported_key as string | null) ?? null,
     bpm: (data.bpm as number | null) ?? null,
     time_signature: (data.time_signature as string | null) ?? null,
     notes: (data.notes as string | null) ?? null,
@@ -312,4 +317,90 @@ export async function getSong(id: string): Promise<SongDetail | null> {
     updated_at: data.updated_at as string,
     translations,
   };
+}
+
+// ---------------------------------------------------------------------------
+// transposeSongToKey — rebase the stored chart into the band's key
+// ---------------------------------------------------------------------------
+
+/**
+ * Rewrite a song's chart so it is stored in `key`.
+ *
+ * The viewer renders `body + transpose_semitones`, and a playlist row starts
+ * at 0. So for "0 = the key we actually play" to hold, the stored chart itself
+ * has to be in that key — relabelling `original_key` alone would leave the
+ * chords where they were and make the label lie.
+ *
+ * Writes to song_translations, not to songs.body_chordpro: that column is a
+ * cache the song_translations_sync_primary trigger overwrites from the primary
+ * translation, so a write there would be silently reverted. Every language
+ * shares the same chords, so all rows move together.
+ */
+export async function transposeSongToKey(rawInput: z.input<typeof transposeSongToKeyInput>) {
+  const session = await requireRole('admin');
+  const parsed = transposeSongToKeyInput.safeParse(rawInput);
+  if (!parsed.success) throw new ValidationError(parsed.error.flatten());
+  const { id, key: targetKey } = parsed.data;
+
+  const sb = await createSupabaseServerClient();
+
+  const { data: song, error: songErr } = await sb
+    .from('songs')
+    .select('id, original_key, imported_key')
+    .eq('id', id)
+    .single();
+  if (songErr || !song) throw new Error(songErr?.message ?? 'Song not found');
+
+  const currentKey = song.original_key as string;
+  const semitones = semitonesBetweenKeys(currentKey, targetKey);
+  if (semitones === null) {
+    throw new ValidationError({ key: [`Cannot transpose from ${currentKey} to ${targetKey}.`] });
+  }
+  if (semitones === 0) {
+    return { ok: true, semitones: 0, from: currentKey, to: targetKey };
+  }
+
+  // Spell accidentals the way the *target* key would: rebasing into F should
+  // produce Bb, not A#, regardless of what the source key preferred.
+  const accidental = detectKeyAccidental(targetKey);
+
+  const { data: translations, error: trErr } = await sb
+    .from('song_translations')
+    .select('id, body_chordpro')
+    .eq('song_id', id);
+  if (trErr) throw new Error(trErr.message);
+
+  for (const tr of translations ?? []) {
+    const { error } = await sb
+      .from('song_translations')
+      .update({ body_chordpro: transposeChordPro(tr.body_chordpro as string, semitones, accidental) })
+      .eq('id', tr.id);
+    if (error) throw new Error(error.message);
+  }
+
+  const { error: keyErr } = await sb
+    .from('songs')
+    .update({
+      original_key: targetKey,
+      // Record where the chart came from, once. A second rebase must not
+      // overwrite this with an intermediate key.
+      imported_key: (song.imported_key as string | null) ?? currentKey,
+      updated_by: session.profile.id,
+    })
+    .eq('id', id);
+  if (keyErr) throw new Error(keyErr.message);
+
+  const sbAdmin = createSupabaseAdminClient();
+  await sbAdmin.rpc('write_audit', {
+    p_actor: session.profile.id,
+    p_action: 'song.transpose',
+    p_target_type: 'song',
+    p_target_id: id,
+    p_metadata: { from: currentKey, to: targetKey, semitones },
+  });
+
+  revalidatePath('/songs');
+  revalidatePath(`/songs/${id}`);
+  revalidatePath(`/songs/${id}/edit`);
+  return { ok: true, semitones, from: currentKey, to: targetKey };
 }
