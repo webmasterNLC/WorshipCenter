@@ -10,6 +10,7 @@ import {
 } from '@/server/auth/require';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import { appOrigin } from '@/lib/env';
 import { defaultMailer } from '@/lib/email/transport';
 import { renderPlaylistShareEmail } from '@/lib/email/templates/playlist-share';
 import {
@@ -584,8 +585,7 @@ export async function sharePlaylist(rawInput: z.input<typeof sharePlaylistInput>
 
   const recipients = (profiles ?? []).filter((p) => p.id !== session.profile.id);
 
-  const appOrigin = process.env.APP_ORIGIN ?? process.env.NEXT_PUBLIC_APP_URL ?? '';
-  const url = `${appOrigin}/playlists/${parsed.data.playlist_id}`;
+  const url = `${appOrigin()}/playlists/${parsed.data.playlist_id}`;
 
   const mailer = defaultMailer();
 

@@ -8,6 +8,7 @@ import { requireRole, type Session } from '@/server/auth/require';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { generateInvitationToken, hashToken } from '@/lib/invitations/token';
 import { defaultMailer } from '@/lib/email/transport';
+import { appOrigin } from '@/lib/env';
 import { renderInvitationEmail } from '@/lib/email/templates/invitation';
 
 // --- Pure factory for tests ---
@@ -101,7 +102,7 @@ export async function sendInvitation(rawInput: z.input<typeof sendInvitationInpu
     },
     mailer: defaultMailer(),
     tokens: { generate: generateInvitationToken, hash: hashToken },
-    originUrl: process.env.APP_ORIGIN ?? 'http://localhost:3000',
+    originUrl: appOrigin(),
   });
   return action(rawInput);
 }

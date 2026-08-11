@@ -1,6 +1,8 @@
 import 'server-only';
 import nodemailer from 'nodemailer';
 
+import { requiredEnv } from '@/lib/env';
+
 export interface SmtpConfig {
   host: string;
   port: number;
@@ -45,18 +47,6 @@ export function makeMailer(cfg: SmtpConfig): Mailer {
 
 // Default mailer wired from env. Lazily constructed.
 let cached: Mailer | null = null;
-
-function requiredEnv(name: string): string {
-  // Trim: a trailing newline pasted into a dashboard field is invisible but fatal.
-  const value = process.env[name]?.trim();
-  if (!value) {
-    throw new Error(
-      `${name} is not set. Email cannot be sent. Check the Vercel env vars for this ` +
-        `environment (Preview and Production are configured separately).`,
-    );
-  }
-  return value;
-}
 
 export function defaultMailer(): Mailer {
   if (cached) return cached;

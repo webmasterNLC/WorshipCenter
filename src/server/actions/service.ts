@@ -6,6 +6,7 @@ import { ValidationError, NotFoundError } from '@/server/auth/errors';
 import { requireRole, type Session } from '@/server/auth/require';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import { appOrigin } from '@/lib/env';
 import {
   assignToServiceInput,
   unassignFromServiceInput,
@@ -292,9 +293,7 @@ export async function notifyRota(playlistId: string, message?: string) {
   );
 
   const sbAdmin = createSupabaseAdminClient();
-  const appOrigin =
-    process.env.APP_ORIGIN ?? process.env.NEXT_PUBLIC_APP_URL ?? '';
-  const url = `${appOrigin}/playlists/${playlistId}`;
+  const url = `${appOrigin()}/playlists/${playlistId}`;
 
   // Lazy-load the mailer + template so unit tests don't transitively pull
   // nodemailer into happy-dom.

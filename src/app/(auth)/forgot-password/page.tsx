@@ -1,16 +1,17 @@
-import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { appOrigin } from '@/lib/env';
 
 async function requestReset(formData: FormData) {
   'use server';
   const email = String(formData.get('email') ?? '').trim().toLowerCase();
   if (email.includes('@')) {
-    const h = await headers();
-    const host = h.get('x-forwarded-host') ?? h.get('host') ?? '';
-    const proto = h.get('x-forwarded-proto') ?? 'https';
-    const origin = host ? `${proto}://${host}` : (process.env.APP_ORIGIN ?? 'http://localhost:3000');
+    // Origin comes from config, never from request headers. X-Forwarded-Host
+    // is attacker-controlled: a poisoned value would mail the victim a real
+    // recovery link pointing at someone else's server, handing over the code
+    // that grants their session.
+    const origin = appOrigin();
 
     // Supabase emails a recovery link → /api/auth/callback exchanges the code
     // and forwards to /reset-password, where the user picks a new password.

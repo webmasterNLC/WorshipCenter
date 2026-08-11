@@ -6,6 +6,7 @@ import { ValidationError } from '@/server/auth/errors';
 import { requireRole, type Session } from '@/server/auth/require';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import { appOrigin } from '@/lib/env';
 import {
   updateMyProfileInput,
   adminSetUserRoleInput,
@@ -191,7 +192,7 @@ export async function updateMyEmail(rawInput: z.input<typeof updateMyEmailInput>
   // the Supabase dashboard, an email is also sent to the OLD address.
   // Point the confirmation link at /api/auth/callback so the PKCE code is
   // exchanged (the default would land on the site root, where nothing runs).
-  const origin = process.env.APP_ORIGIN ?? 'http://localhost:3000';
+  const origin = appOrigin();
   const sb = await createSupabaseServerClient();
   const { error } = await sb.auth.updateUser(
     { email: parsed.data.email },
