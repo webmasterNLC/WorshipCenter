@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { ArrowLeft, Download } from 'lucide-react';
 import { requireRole } from '@/server/auth/require';
-import { importPnwChordsSong } from '@/server/actions/import';
+import { importSongFromUrl } from '@/server/actions/import';
 import { runAction } from '@/server/actions/_action-result';
 
 interface PageProps {
@@ -16,7 +16,7 @@ export default async function ImportSongPage({ searchParams }: PageProps) {
   async function doImport(form: FormData) {
     'use server';
     const url = String(form.get('url') ?? '').trim();
-    const result = await runAction(() => importPnwChordsSong({ url }));
+    const result = await runAction(() => importSongFromUrl({ url }));
     if (!result.ok) {
       redirect(`/songs/import?error=${encodeURIComponent(result.error.message)}`);
     }
@@ -39,7 +39,9 @@ export default async function ImportSongPage({ searchParams }: PageProps) {
           Import a <em className="text-(--color-accent) not-italic">song</em>.
         </h1>
         <p className="text-sm text-(--color-muted-fg)">
-          Paste a <span className="font-mono text-xs">pnwchords.com</span> song URL. We&apos;ll
+          Paste a song URL from{' '}
+          <span className="font-mono text-xs">pnwchords.com</span> or{' '}
+          <span className="font-mono text-xs">ultimate-guitar.com</span>. We&apos;ll
           fetch the chord chart, convert it to ChordPro, and drop you into the
           editor to review.
         </p>
@@ -60,9 +62,9 @@ export default async function ImportSongPage({ searchParams }: PageProps) {
             type="url"
             name="url"
             required
-            placeholder="https://pnwchords.com/<song-slug>/"
-            pattern="https://(www\.)?pnwchords\.com/.*"
-            title="Must be a pnwchords.com URL"
+            placeholder="https://tabs.ultimate-guitar.com/tab/..."
+            pattern="https://((www\.)?pnwchords\.com|(tabs\.|www\.)?ultimate-guitar\.com)/.*"
+            title="Must be a pnwchords.com or ultimate-guitar.com URL"
             className="rounded-lg border border-(--color-border) bg-(--color-bg) px-3 py-2 text-sm font-mono focus:border-(--color-accent) focus:outline-none"
           />
         </label>
