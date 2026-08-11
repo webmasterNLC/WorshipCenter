@@ -21,6 +21,8 @@ const BANNERS: Record<string, { tone: 'ok' | 'err'; text: string }> = {
   'name-fail':     { tone: 'err', text: 'Could not update display name. Please check the value and try again.' },
   'email-fail':    { tone: 'err', text: 'Could not update email. Please check the address and try again.' },
   'pw-fail':       { tone: 'err', text: 'Could not update password — must be at least 12 characters.' },
+  'pw-wrong-current': { tone: 'err', text: 'Could not update password. Check your current password, and that the new one is at least 12 characters.' },
+  'pw-reauth':     { tone: 'err', text: 'To change your password while signed in, enter your current one below.' },
 };
 
 export default async function MePage({ searchParams }: PageProps) {
@@ -53,9 +55,12 @@ export default async function MePage({ searchParams }: PageProps) {
   async function savePassword(form: FormData) {
     'use server';
     const result = await runAction(() =>
-      updateMyPassword({ password: String(form.get('password') ?? '') }),
+      updateMyPassword({
+        current_password: String(form.get('current_password') ?? ''),
+        password: String(form.get('password') ?? ''),
+      }),
     );
-    redirect(`/me?${result.ok ? 'ok=pw-saved' : 'err=pw-fail'}`);
+    redirect(`/me?${result.ok ? 'ok=pw-saved' : 'err=pw-wrong-current'}`);
   }
 
   return (
@@ -170,23 +175,34 @@ export default async function MePage({ searchParams }: PageProps) {
             </p>
           </div>
         </div>
-        <form action={savePassword} className="grid grid-cols-[1fr_auto] gap-2">
+        <form action={savePassword} className="grid gap-2">
           <input
             type="password"
-            name="password"
+            name="current_password"
             required
-            minLength={12}
             maxLength={128}
-            placeholder="New password"
-            autoComplete="new-password"
+            placeholder="Current password"
+            autoComplete="current-password"
             className="rounded-lg border border-(--color-border) bg-(--color-bg) px-3 py-2 text-sm"
           />
-          <button
-            type="submit"
-            className="rounded-lg border border-(--color-border) px-4 py-2 text-sm font-medium hover:border-(--color-accent) hover:text-(--color-accent)"
-          >
-            Update
-          </button>
+          <div className="grid grid-cols-[1fr_auto] gap-2">
+            <input
+              type="password"
+              name="password"
+              required
+              minLength={12}
+              maxLength={128}
+              placeholder="New password"
+              autoComplete="new-password"
+              className="rounded-lg border border-(--color-border) bg-(--color-bg) px-3 py-2 text-sm"
+            />
+            <button
+              type="submit"
+              className="rounded-lg border border-(--color-border) px-4 py-2 text-sm font-medium hover:border-(--color-accent) hover:text-(--color-accent)"
+            >
+              Update
+            </button>
+          </div>
         </form>
       </section>
     </div>

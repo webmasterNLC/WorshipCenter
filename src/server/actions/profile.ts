@@ -6,7 +6,9 @@ import { ValidationError } from '@/server/auth/errors';
 import { requireRole, type Session } from '@/server/auth/require';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
-import { appOrigin } from '@/lib/env';
+import { createClient } from '@supabase/supabase-js';
+
+import { appOrigin, requiredEnv } from '@/lib/env';
 import {
   updateMyProfileInput,
   adminSetUserRoleInput,
@@ -219,6 +221,28 @@ export async function updateMyPassword(rawInput: z.input<typeof updateMyPassword
   if (!parsed.success) throw new ValidationError(parsed.error.flatten());
 
   const sb = await createSupabaseServerClient();
+
+  // Reauthenticate before changing the password, so an unattended or stolen
+  // session cannot lock the owner out of their own account.
+  const { data: userData } = await sb.auth.getUser();
+  const email = userData.user?.email;
+  if (!email) throw new Error('Cannot verify the current password: no email on this account.');
+
+  // A throwaway client: signInWithPassword on the request-scoped one would
+  // rewrite this request's session cookies as a side effect of a check.
+  const probe = createClient(
+    requiredEnv('NEXT_PUBLIC_SUPABASE_URL'),
+    requiredEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY'),
+    { auth: { persistSession: false, autoRefreshToken: false } },
+  );
+  const { error: reauthError } = await probe.auth.signInWithPassword({
+    email,
+    password: parsed.data.current_password,
+  });
+  if (reauthError) {
+    throw new ValidationError({ current_password: ['Current password is incorrect.'] });
+  }
+
   const { error } = await sb.auth.updateUser({ password: parsed.data.password });
   if (error) throw new Error(error.message);
 

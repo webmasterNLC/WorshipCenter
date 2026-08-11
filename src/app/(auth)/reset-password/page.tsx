@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { loadSession } from '@/server/auth/require';
+import { sessionAuthMethods, usedPassword } from '@/lib/auth/session-methods';
 
 const PASSWORD_RE = /^(?=.*[^A-Za-z0-9]).{12,}$/;
 
@@ -16,6 +17,14 @@ async function setNewPassword(formData: FormData) {
   if (!session) redirect('/sign-in?error=recovery');
 
   const sb = await createSupabaseServerClient();
+
+  // A session created by signing in with a password must not be able to set a
+  // new one here — that would let a stolen cookie lock the owner out without
+  // ever knowing the current password. Those users have /me, which asks for it.
+  if (usedPassword(await sessionAuthMethods(sb))) {
+    redirect('/me?err=pw-reauth');
+  }
+
   const { error } = await sb.auth.updateUser({ password });
   if (error) redirect(`/reset-password?error=${encodeURIComponent(error.message)}`);
 
@@ -31,6 +40,13 @@ export default async function ResetPasswordPage({
   // code). Without one, the link was already used or expired — send to sign-in.
   const session = await loadSession();
   if (!session) redirect('/sign-in?error=recovery');
+
+  // Same gate as the action, so a password-session lands on the right form
+  // instead of filling this one in and being bounced on submit.
+  const sbGate = await createSupabaseServerClient();
+  if (usedPassword(await sessionAuthMethods(sbGate))) {
+    redirect('/me?err=pw-reauth');
+  }
   const { error } = await searchParams;
 
   return (

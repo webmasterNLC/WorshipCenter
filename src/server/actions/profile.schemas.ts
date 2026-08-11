@@ -32,6 +32,10 @@ export const updateMyEmailInput = z.object({
 export type UpdateMyEmailInput = z.infer<typeof updateMyEmailInput>;
 
 export const updateMyPasswordInput = z.object({
+  // Proof that the person at the keyboard is the account owner, not someone
+  // who walked up to an unlocked session. Not length-checked — it is verified
+  // against the auth server, and old accounts may predate the 12-char rule.
+  current_password: z.string().min(1, 'Enter your current password').max(128),
   password: z
     .string()
     .min(12, 'Password must be at least 12 characters')
