@@ -45,15 +45,28 @@ export function makeMailer(cfg: SmtpConfig): Mailer {
 
 // Default mailer wired from env. Lazily constructed.
 let cached: Mailer | null = null;
+
+function requiredEnv(name: string): string {
+  // Trim: a trailing newline pasted into a dashboard field is invisible but fatal.
+  const value = process.env[name]?.trim();
+  if (!value) {
+    throw new Error(
+      `${name} is not set. Email cannot be sent. Check the Vercel env vars for this ` +
+        `environment (Preview and Production are configured separately).`,
+    );
+  }
+  return value;
+}
+
 export function defaultMailer(): Mailer {
   if (cached) return cached;
   cached = makeMailer({
-    host: process.env.SMTP_HOST!,
+    host: requiredEnv('SMTP_HOST'),
     port: Number(process.env.SMTP_PORT ?? 587),
     secure: process.env.SMTP_SECURE === 'true',
-    user: process.env.SMTP_USER!,
-    password: process.env.SMTP_PASSWORD!,
-    from: process.env.SMTP_FROM!,
+    user: requiredEnv('SMTP_USER'),
+    password: requiredEnv('SMTP_PASSWORD'),
+    from: requiredEnv('SMTP_FROM'),
   });
   return cached;
 }
