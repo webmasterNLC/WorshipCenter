@@ -71,9 +71,20 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL('/sign-in?invite=error', req.url));
   }
 
+  // Mint the sign-in credential BEFORE consuming the invitation. GoTrue is a
+  // network call and can fail; if it does, the invite must stay usable rather
+  // than being burned on a click that never signed anyone in.
+  const { data: linkData, error: linkError } = await sb.auth.admin.generateLink({
+    type: 'magiclink',
+    email: invitation.email,
+  });
+  if (linkError || !linkData.properties?.hashed_token) {
+    return NextResponse.redirect(new URL('/sign-in?invite=error', req.url));
+  }
+
   // Mark invitation accepted — atomic single-use claim. If another concurrent
   // request already accepted this invitation, the conditional UPDATE returns
-  // zero rows and we treat it as a single-use violation (410 Gone).
+  // zero rows and we treat it as a single-use violation.
   const { data: claimed, error: claimError } = await sb
     .from('invitations')
     .update({ accepted_at: new Date().toISOString() })
@@ -87,19 +98,15 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL('/sign-in?invite=already_used', req.url));
   }
 
-  // Generate a magic-link sign-in. The user is redirected to /onboard after
-  // the magic link's callback completes. We use Supabase Auth's generateLink
-  // because it handles cookie issuance via the auth/callback handler.
-  const { data: linkData, error: linkError } = await sb.auth.admin.generateLink({
-    type: 'magiclink',
-    email: invitation.email,
-    options: {
-      redirectTo: `${process.env.APP_ORIGIN}/api/auth/callback?next=/onboard`,
-    },
-  });
-  if (linkError || !linkData.properties?.action_link) {
-    return NextResponse.redirect(new URL('/sign-in?invite=error', req.url));
-  }
-
-  return NextResponse.redirect(linkData.properties.action_link);
+  // Redeem the token through our own callback rather than following GoTrue's
+  // action_link. An admin-generated link carries no PKCE code challenge, so
+  // /auth/v1/verify returns the session in a URL *fragment* — which a server
+  // route can never read, leaving the user at /sign-in?error=no_code. Handing
+  // the hashed_token to verifyOtp keeps the exchange server-side, and drops
+  // the dependency on APP_ORIGIN being in Supabase's redirect allowlist.
+  const callback = new URL('/api/auth/callback', req.url);
+  callback.searchParams.set('token_hash', linkData.properties.hashed_token);
+  callback.searchParams.set('type', 'magiclink');
+  callback.searchParams.set('next', '/onboard');
+  return NextResponse.redirect(callback);
 }
