@@ -8,9 +8,13 @@ export function TopBar({ session }: { session: Session }) {
       <Link
         href="/home"
         className="md:hidden flex items-center gap-2"
-        aria-label="NLC Burgdorf — Home"
+        aria-label="NLC Burgdorf WorshipCenter — Home"
       >
-        <span className="nlc-logo size-8" role="img" aria-label="NLC Burgdorf" />
+        {/* Beside the logo, not below it: the bar is one line tall. */}
+        <span className="nlc-logo size-8" aria-hidden />
+        <span className="font-display text-xs tracking-[0.18em] text-(--color-accent) uppercase">
+          WorshipCenter
+        </span>
       </Link>
       {/* Desktop spacer — keeps the right-hand controls aligned. */}
       <span className="hidden md:block" />

@@ -22,10 +22,16 @@ export function SideRail({ session }: { session: Session }) {
     <aside className="hidden border-r border-(--color-border) px-3 py-6 md:flex md:flex-col md:gap-6">
       <Link
         href="/home"
-        className="flex items-center justify-center px-3"
-        aria-label="NLC Burgdorf — Home"
+        className="flex flex-col items-center gap-2 px-3"
+        aria-label="NLC Burgdorf WorshipCenter — Home"
       >
-        <span className="nlc-logo h-14 w-14" role="img" aria-label="NLC Burgdorf" />
+        {/* aria-hidden: the link already announces itself, and the wordmark
+            below is real text — without this a screen reader says the name
+            twice. */}
+        <span className="nlc-logo h-14 w-14" aria-hidden />
+        <span className="font-display text-xs tracking-[0.2em] text-(--color-accent) uppercase">
+          WorshipCenter
+        </span>
       </Link>
       <ul className="grid gap-0.5">
         {items.map(({ href, label, icon: Icon }) => (
