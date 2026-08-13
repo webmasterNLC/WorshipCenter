@@ -15,6 +15,7 @@ import {
   getServiceAssignments,
   getRotaCandidates,
 } from '@/server/actions/service';
+import type { RotaRole } from '@/server/actions/rota.constants';
 import { requireAdminOrAssignedLeader } from '@/server/auth/require';
 import { PlaylistEditorClient } from '@/components/playlists/PlaylistEditorClient';
 import { RotaBlock } from '@/components/playlists/RotaBlock';
@@ -83,6 +84,20 @@ export default async function PlaylistEditPage({ params }: PageProps) {
     await savePlaylistVersion(id);
   }
 
+  // assignToService/unassignFromService live in a `server-only` module, so they
+  // are plain server functions rather than server actions and cannot be handed
+  // to a client component directly — React refuses to serialise them and the
+  // whole page 500s. Wrap them like every other action on this page.
+  async function assign(input: { playlist_id: string; role: RotaRole; member_id: string }) {
+    'use server';
+    await assignToService(input);
+  }
+
+  async function unassign(input: { playlist_id: string; role: RotaRole; member_id: string }) {
+    'use server';
+    await unassignFromService(input);
+  }
+
   // Map to plain serialisable shapes for the client component
   const initialItems: PlaylistItemData[] = playlist.items.map((item) => ({
     id: item.id,
@@ -117,8 +132,8 @@ export default async function PlaylistEditPage({ params }: PageProps) {
           assignments={assignments}
           candidates={candidates}
           canEdit={true}
-          assign={assignToService}
-          unassign={unassignFromService}
+          assign={assign}
+          unassign={unassign}
         />
       )}
       <PlaylistEditorClient
