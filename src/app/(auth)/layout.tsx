@@ -9,7 +9,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             "Accept invitation" should recognise where they landed. */}
         <div className="flex flex-col items-center border-b-2 border-(--color-accent) px-6 pt-8 pb-5">
           <span className="nlc-logo h-14 w-14" role="img" aria-label="NLC Burgdorf" />
-          <span className="mt-3 text-xs font-medium tracking-[0.35em] text-(--color-accent) uppercase">
+          <span className="font-display mt-3 text-base tracking-[0.28em] text-(--color-accent) uppercase">
             WorshipCenter
           </span>
         </div>

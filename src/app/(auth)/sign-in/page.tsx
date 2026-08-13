@@ -43,7 +43,7 @@ export default async function SignInPage({
       {/* Logo moved to the auth layout so every auth screen carries it. */}
       <h1 className="mb-1 text-2xl">Welcome back</h1>
       <p className="mb-6 text-sm text-(--color-muted-fg)">
-        Sign in to WorshipCenter.
+        Sign in to your account.
       </p>
 
       {invite === 'invalid' && (
