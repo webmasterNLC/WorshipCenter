@@ -30,9 +30,9 @@ describe('requiredEnv', () => {
 
 describe('appOrigin', () => {
   it('prefers APP_ORIGIN', () => {
-    process.env.APP_ORIGIN = 'https://songdrop.example';
+    process.env.APP_ORIGIN = 'https://worshipcenter.example';
     process.env.NEXT_PUBLIC_APP_URL = 'https://ignored.example';
-    expect(appOrigin()).toBe('https://songdrop.example');
+    expect(appOrigin()).toBe('https://worshipcenter.example');
   });
 
   it('falls back to NEXT_PUBLIC_APP_URL', () => {
@@ -41,25 +41,25 @@ describe('appOrigin', () => {
   });
 
   it('strips trailing slashes so `${origin}/path` stays clean', () => {
-    process.env.APP_ORIGIN = 'https://songdrop.example///';
-    expect(`${appOrigin()}/onboard`).toBe('https://songdrop.example/onboard');
+    process.env.APP_ORIGIN = 'https://worshipcenter.example///';
+    expect(`${appOrigin()}/onboard`).toBe('https://worshipcenter.example/onboard');
   });
 
   it('falls back to the origin Vercel reports, with a protocol', () => {
-    process.env.VERCEL_PROJECT_PRODUCTION_URL = 'songdrop-nine.vercel.app';
-    expect(appOrigin()).toBe('https://songdrop-nine.vercel.app');
+    process.env.VERCEL_PROJECT_PRODUCTION_URL = 'nlc-worshipcenter.vercel.app';
+    expect(appOrigin()).toBe('https://nlc-worshipcenter.vercel.app');
   });
 
   it('does not double up the protocol if Vercel already supplies one', () => {
-    process.env.VERCEL_PROJECT_PRODUCTION_URL = 'https://songdrop-nine.vercel.app/';
-    expect(appOrigin()).toBe('https://songdrop-nine.vercel.app');
+    process.env.VERCEL_PROJECT_PRODUCTION_URL = 'https://nlc-worshipcenter.vercel.app/';
+    expect(appOrigin()).toBe('https://nlc-worshipcenter.vercel.app');
   });
 
   it('prefers an explicit APP_ORIGIN over the platform value', () => {
     // The custom domain has to win once it exists.
-    process.env.APP_ORIGIN = 'https://songdrop.nlc-burgdorf.ch';
-    process.env.VERCEL_PROJECT_PRODUCTION_URL = 'songdrop-nine.vercel.app';
-    expect(appOrigin()).toBe('https://songdrop.nlc-burgdorf.ch');
+    process.env.APP_ORIGIN = 'https://worshipcenter.nlc-burgdorf.ch';
+    process.env.VERCEL_PROJECT_PRODUCTION_URL = 'nlc-worshipcenter.vercel.app';
+    expect(appOrigin()).toBe('https://worshipcenter.nlc-burgdorf.ch');
   });
 
   it('throws rather than emitting a localhost link when nothing is available', () => {

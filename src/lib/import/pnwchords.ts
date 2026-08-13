@@ -61,7 +61,7 @@ export async function fetchPnwChordsSong(rawUrl: string): Promise<PnwChordsSong>
     headers: {
       // Identify ourselves so the host can rate-limit / block if they want.
       'User-Agent':
-        'NLC-Burgdorf-Songdrop/1.0 (+private worship-band internal use)',
+        'NLC-Burgdorf-WorshipCenter/1.0 (+private worship-band internal use)',
       Accept: 'text/html,application/xhtml+xml',
     },
     // No caching — we want a fresh copy each import.

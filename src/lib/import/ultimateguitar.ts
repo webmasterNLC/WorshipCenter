@@ -133,7 +133,7 @@ export async function fetchUltimateGuitarSong(rawUrl: string): Promise<UltimateG
     headers: {
       // Identify ourselves so the host can rate-limit or block if they want.
       'User-Agent':
-        'NLC-Burgdorf-Songdrop/1.0 (+private worship-band internal use)',
+        'NLC-Burgdorf-WorshipCenter/1.0 (+private worship-band internal use)',
       Accept: 'text/html,application/xhtml+xml',
     },
     cache: 'no-store',

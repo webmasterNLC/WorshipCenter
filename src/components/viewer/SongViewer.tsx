@@ -8,6 +8,10 @@ import { ChordLine } from './ChordLine';
 import { KeyDial } from './KeyDial';
 
 const FONT_STEPS = [16, 20, 24, 30, 40] as const;
+// Deliberately still 'songdrop-': the key names an existing value in every
+// user's browser. Renaming them at the WorshipCenter rename would have reset
+// theme, font size and follow-lead on all eight stage iPads for no gain —
+// nobody ever reads a storage key.
 const FONT_STEP_KEY = 'songdrop-font-step';
 
 const LANG_LABEL: Record<string, string> = {

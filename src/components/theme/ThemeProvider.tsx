@@ -2,6 +2,10 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 
 export type Theme = 'light' | 'stage-dark';
+// Deliberately still 'songdrop-': the key names an existing value in every
+// user's browser. Renaming them at the WorshipCenter rename would have reset
+// theme, font size and follow-lead on all eight stage iPads for no gain —
+// nobody ever reads a storage key.
 const STORAGE_KEY = 'songdrop-theme';
 
 const ThemeCtx = createContext<{ theme: Theme; setTheme: (t: Theme) => void }>({

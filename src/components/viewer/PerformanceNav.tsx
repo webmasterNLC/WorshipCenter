@@ -20,6 +20,10 @@ interface PerformanceNavProps {
   onBroadcastChange?: (next: boolean) => void;
 }
 
+// Deliberately still 'songdrop-': the key names an existing value in every
+// user's browser. Renaming them at the WorshipCenter rename would have reset
+// theme, font size and follow-lead on all eight stage iPads for no gain —
+// nobody ever reads a storage key.
 const FOLLOW_KEY = 'songdrop-follow-lead';
 
 export function PerformanceNav({

@@ -4,12 +4,12 @@ import './globals.css';
 import { body, notoSans, notoSansTamil, display } from './fonts';
 
 export const metadata: Metadata = {
-  title: 'NLC Burgdorf SongDrop',
+  title: 'NLC Burgdorf WorshipCenter',
   description: 'Worship songs, chords, and programs for NLC Burgdorf.',
   manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
-    title: 'SongDrop',
+    title: 'WorshipCenter',
     statusBarStyle: 'black-translucent',
   },
   other: {

@@ -9,7 +9,7 @@ describe('renderInvitationEmail', () => {
       role: 'leader',
       expiresAt: new Date('2026-05-07T12:00:00Z'),
     });
-    expect(out.subject).toMatch(/SongDrop/);
+    expect(out.subject).toMatch(/WorshipCenter/);
     expect(out.html).toContain('Lisa &lt;Maria&gt;');
     expect(out.html).toContain('token=&lt;abc&gt;&amp;role=admin');
     expect(out.text).toContain('https://example.org/accept?token=<abc>&role=admin'); // raw in text is fine

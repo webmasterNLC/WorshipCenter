@@ -1,4 +1,4 @@
-# NLC Burgdorf SongDrop
+# NLC Burgdorf WorshipCenter
 
 Worship songs, chords, and setlists for NLC Burgdorf.
 
