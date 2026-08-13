@@ -7,6 +7,7 @@ const SAVED = { ...process.env };
 beforeEach(() => {
   delete process.env.APP_ORIGIN;
   delete process.env.NEXT_PUBLIC_APP_URL;
+  delete process.env.VERCEL_PROJECT_PRODUCTION_URL;
 });
 afterEach(() => {
   process.env = { ...SAVED };
@@ -44,7 +45,24 @@ describe('appOrigin', () => {
     expect(`${appOrigin()}/onboard`).toBe('https://songdrop.example/onboard');
   });
 
-  it('throws rather than emitting a localhost link', () => {
+  it('falls back to the origin Vercel reports, with a protocol', () => {
+    process.env.VERCEL_PROJECT_PRODUCTION_URL = 'songdrop-nine.vercel.app';
+    expect(appOrigin()).toBe('https://songdrop-nine.vercel.app');
+  });
+
+  it('does not double up the protocol if Vercel already supplies one', () => {
+    process.env.VERCEL_PROJECT_PRODUCTION_URL = 'https://songdrop-nine.vercel.app/';
+    expect(appOrigin()).toBe('https://songdrop-nine.vercel.app');
+  });
+
+  it('prefers an explicit APP_ORIGIN over the platform value', () => {
+    // The custom domain has to win once it exists.
+    process.env.APP_ORIGIN = 'https://songdrop.nlc-burgdorf.ch';
+    process.env.VERCEL_PROJECT_PRODUCTION_URL = 'songdrop-nine.vercel.app';
+    expect(appOrigin()).toBe('https://songdrop.nlc-burgdorf.ch');
+  });
+
+  it('throws rather than emitting a localhost link when nothing is available', () => {
     expect(() => appOrigin()).toThrow(/APP_ORIGIN/);
   });
 });

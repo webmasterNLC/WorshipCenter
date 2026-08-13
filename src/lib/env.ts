@@ -31,19 +31,41 @@ export function requiredEnv(name: string): string {
  * attacker-controlled, and a poisoned value turns a reset mail into a
  * credential-harvesting link pointed at someone else's server.
  *
- * Throws when unset rather than falling back to localhost: a link nobody can
- * open is worse than a failed send, because the failure is silent and the
- * recipient is the one who discovers it.
+ * Falls back to the origin Vercel reports for the project, then throws. Never
+ * to localhost: a link nobody can open is worse than a failed send, because
+ * the failure is silent and the recipient is the one who discovers it.
  */
 export function appOrigin(): string {
-  const value =
+  const configured =
     process.env.APP_ORIGIN?.trim() || process.env.NEXT_PUBLIC_APP_URL?.trim();
-  if (!value) {
-    throw new Error(
-      'APP_ORIGIN is not set. Emailed links need an absolute origin — ' +
-        'without it recipients get an unusable http://localhost:3000 URL.',
+  if (configured) return stripTrailingSlash(configured);
+
+  // VERCEL_PROJECT_PRODUCTION_URL is the project's stable production domain,
+  // supplied by the platform. Deliberately not VERCEL_URL, which is unique per
+  // deployment: an invitation mailed today would point at a build that gets
+  // superseded tomorrow. Preview deployments report the production domain too,
+  // which is what we want — a recipient should land on the real app, not on a
+  // branch build behind the SSO wall.
+  //
+  // This exists because a missing APP_ORIGIN has now broken invitations twice:
+  // once mailing http://localhost:3000, once failing the send outright. The
+  // platform knows the answer, so asking it beats requiring a manual step that
+  // has demonstrably not survived contact with a deploy.
+  const fromVercel = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
+  if (fromVercel) {
+    return stripTrailingSlash(
+      fromVercel.startsWith('http') ? fromVercel : `https://${fromVercel}`,
     );
   }
-  // Strip trailing slashes so callers can concatenate `${origin}/path` safely.
+
+  throw new Error(
+    'APP_ORIGIN is not set and no Vercel production URL is available. ' +
+      'Emailed links need an absolute origin — without one recipients get an ' +
+      'unusable http://localhost:3000 URL.',
+  );
+}
+
+/** So callers can concatenate `${origin}/path` without a double slash. */
+function stripTrailingSlash(value: string): string {
   return value.replace(/\/+$/, '');
 }
