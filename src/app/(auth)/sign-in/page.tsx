@@ -40,16 +40,10 @@ export default async function SignInPage({
 
   return (
     <>
-      <div className="mb-6 flex justify-center">
-        <span
-          className="nlc-logo h-20 w-20"
-          role="img"
-          aria-label="NLC Burgdorf"
-        />
-      </div>
-      <h1 className="mb-1 text-xl font-semibold">Sign in</h1>
+      {/* Logo moved to the auth layout so every auth screen carries it. */}
+      <h1 className="mb-1 text-2xl">Welcome back</h1>
       <p className="mb-6 text-sm text-(--color-muted-fg)">
-        Enter your email and password.
+        Sign in for this Sunday&rsquo;s songs and your program.
       </p>
 
       {invite === 'invalid' && (
@@ -68,40 +62,42 @@ export default async function SignInPage({
         </p>
       )}
 
-      <form action={signInAction} className="grid gap-3">
-        <label className="grid gap-1 text-sm">
-          <span>Email</span>
+      <form action={signInAction} className="grid gap-4">
+        <label className="grid gap-1.5 text-sm">
+          <span className="font-medium">Email</span>
           <input
             type="email"
             name="email"
             required
             autoComplete="email"
-            className="rounded-md border border-(--color-border) bg-(--color-bg) px-3 py-2 outline-none focus:ring-2 focus:ring-(--color-accent)"
+            className="rounded-lg border border-(--color-border) bg-(--color-bg) px-3 py-2.5 outline-none focus:border-(--color-accent) focus:ring-2 focus:ring-(--color-accent)"
           />
         </label>
-        <label className="grid gap-1 text-sm">
-          <span>Password</span>
+        <label className="grid gap-1.5 text-sm">
+          <span className="font-medium">Password</span>
           <input
             type="password"
             name="password"
             required
             autoComplete="current-password"
-            className="rounded-md border border-(--color-border) bg-(--color-bg) px-3 py-2 outline-none focus:ring-2 focus:ring-(--color-accent)"
+            className="rounded-lg border border-(--color-border) bg-(--color-bg) px-3 py-2.5 outline-none focus:border-(--color-accent) focus:ring-2 focus:ring-(--color-accent)"
           />
         </label>
         <button
           type="submit"
-          className="rounded-md bg-(--color-accent) px-3 py-2 font-medium text-(--color-accent-fg)"
+          className="mt-1 rounded-lg bg-(--color-accent) px-3 py-2.5 font-medium text-(--color-accent-fg) transition-opacity hover:opacity-90"
         >
           Sign in
         </button>
       </form>
-      <Link
-        href="/forgot-password"
-        className="mt-4 inline-block text-sm text-(--color-muted-fg) hover:text-(--color-accent)"
-      >
-        Forgot password?
-      </Link>
+      <p className="mt-5 text-center text-sm">
+        <Link
+          href="/forgot-password"
+          className="text-(--color-muted-fg) underline-offset-4 hover:text-(--color-accent) hover:underline"
+        >
+          Forgot password?
+        </Link>
+      </p>
     </>
   );
 }
