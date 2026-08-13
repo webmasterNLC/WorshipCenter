@@ -1,0 +1,45 @@
+<!-- Supabase → Authentication → Emails → Change Email Address
+     Subject: Confirm your email address — NLC Burgdorf WorshipCenter
+
+     Triggered by changeEmail() in src/server/actions/profile.ts. With
+     "Secure email change" this mail goes to BOTH addresses, which is why the
+     copy names the old and the new one ({{ .Email }} / {{ .NewEmail }}).
+
+     {{ .ConfirmationURL }} lands with ?code= on
+     /api/auth/callback?next=/me. Do not replace it with a hand-built
+     token_hash link. -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f5f5f5;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;margin:0;padding:24px 0;">
+  <tr><td align="center">
+    <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border:1px solid #e5e5e5;border-radius:16px;overflow:hidden;font-family:Helvetica,Arial,sans-serif;">
+      <tr><td align="center" style="padding:32px 32px 20px 32px;border-bottom:2px solid #1F3A60;">
+        <img src="{{ .SiteURL }}/nlc-logo.png" width="58" height="59" alt="NLC Burgdorf" style="display:block;margin:0 auto 10px auto;border:0;outline:none;">
+        <span style="color:#1F3A60;font-size:13px;font-weight:bold;letter-spacing:4px;text-transform:uppercase;">WorshipCenter</span>
+      </td></tr>
+      <tr><td style="padding:32px 32px 8px 32px;">
+        <h1 style="margin:0 0 8px 0;font-size:24px;line-height:1.2;color:#16181d;letter-spacing:-0.01em;">Confirm your email address</h1>
+        <p style="margin:0 0 24px 0;font-size:15px;line-height:1.6;color:#6b6b6b;">
+          Someone requested to change the email address of your NLC Burgdorf WorshipCenter account from
+          <strong style="color:#16181d;">{{ .Email }}</strong> to
+          <strong style="color:#16181d;">{{ .NewEmail }}</strong>. Click the button to confirm.
+        </p>
+        <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
+          <tr><td bgcolor="#1F3A60" style="border-radius:8px;">
+            <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:13px 30px;font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;letter-spacing:0.3px;">Confirm change</a>
+          </td></tr>
+        </table>
+        <p style="margin:0 0 6px 0;font-size:12px;color:#9a9a9a;">If the button doesn't work, copy this link:</p>
+        <p style="margin:0 0 8px 0;font-size:12px;word-break:break-all;"><a href="{{ .ConfirmationURL }}" style="color:#1F3A60;">{{ .ConfirmationURL }}</a></p>
+        <p style="margin:16px 0 0 0;font-size:13px;color:#6b6b6b;">The link can only be used once and expires shortly.</p>
+      </td></tr>
+      <tr><td style="border-top:1px solid #e5e5e5;padding:20px 32px;">
+        <p style="margin:0;font-size:12px;line-height:1.5;color:#9a9a9a;">
+          If you didn't request this change, don't confirm it and let an administrator know — your current address stays active.
+        </p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+</body></html>

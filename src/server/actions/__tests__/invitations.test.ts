@@ -5,6 +5,7 @@ import { ForbiddenError, ValidationError } from '@/server/auth/errors';
 // dependencies (auth gate, db, mailer, token funcs) as arguments.
 
 import { makeSendInvitation } from '../invitations';
+import type { SendInput } from '@/lib/email/transport';
 
 const adminSession = {
   user: { id: 'admin-uid' },
@@ -22,7 +23,7 @@ function makeFakes() {
     }),
     writeAudit: vi.fn(async () => {}),
   };
-  const mailer = { send: vi.fn(async (msg: Record<string, unknown>) => { sentMails.push(msg); return { messageId: '<id>' }; }) };
+  const mailer = { send: vi.fn(async (msg: SendInput) => { sentMails.push({ ...msg }); return { messageId: '<id>' }; }) };
   const tokens = {
     generate: vi.fn(() => 'RAWTOKEN'),
     hash: vi.fn(async (raw: string) => `hash(${raw})`),

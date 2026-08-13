@@ -13,6 +13,24 @@ describe('renderInvitationEmail', () => {
     expect(out.html).toContain('Lisa &lt;Maria&gt;');
     expect(out.html).toContain('token=&lt;abc&gt;&amp;role=admin');
     expect(out.text).toContain('https://example.org/accept?token=<abc>&role=admin'); // raw in text is fine
-    expect(out.text).toContain('Leiter'); // role rendered with its German label
+    expect(out.text).toContain('Worship Leader'); // role rendered with its label
+  });
+
+  it('ships the logo as an inline attachment the html actually references', () => {
+    const out = renderInvitationEmail({
+      acceptUrl: 'https://example.org/accept?token=abc',
+      inviterName: 'Lisa',
+      role: 'viewer',
+      expiresAt: new Date('2026-05-07T12:00:00Z'),
+    });
+
+    const logo = out.attachments[0];
+    expect(out.html).toContain(`src="cid:${logo.cid}"`);
+    expect(logo.content.length).toBeGreaterThan(0);
+
+    // A remote <img> sits behind the client's "load images?" prompt and a
+    // data: URI is stripped by Gmail and Outlook — neither may come back.
+    expect(out.html).not.toMatch(/src="https?:/);
+    expect(out.html).not.toContain('src="data:');
   });
 });

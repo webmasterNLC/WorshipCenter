@@ -7,7 +7,7 @@ import { ValidationError } from '@/server/auth/errors';
 import { requireRole, type Session } from '@/server/auth/require';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { generateInvitationToken, hashToken } from '@/lib/invitations/token';
-import { defaultMailer } from '@/lib/email/transport';
+import { defaultMailer, type SendInput } from '@/lib/email/transport';
 import { appOrigin } from '@/lib/env';
 import { renderInvitationEmail } from '@/lib/email/templates/invitation';
 
@@ -24,7 +24,7 @@ export interface InvitationDeps {
       metadata: Record<string, unknown>;
     }): Promise<void>;
   };
-  mailer: { send(msg: { to: string; subject: string; html: string; text: string }): Promise<{ messageId: string }> };
+  mailer: { send(msg: SendInput): Promise<{ messageId: string }> };
   tokens: { generate(): string; hash(raw: string): Promise<string> };
   originUrl: string;
 }

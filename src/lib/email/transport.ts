@@ -12,11 +12,20 @@ export interface SmtpConfig {
   from: string;
 }
 
+/** Inline image, referenced from the HTML as <img src="cid:${cid}">. */
+export interface EmailAttachment {
+  filename: string;
+  content: Buffer;
+  cid: string;
+  contentType: string;
+}
+
 export interface SendInput {
   to: string;
   subject: string;
   html: string;
   text: string;
+  attachments?: EmailAttachment[];
 }
 
 export interface Mailer {
@@ -32,13 +41,14 @@ export function makeMailer(cfg: SmtpConfig): Mailer {
   });
 
   return {
-    async send({ to, subject, html, text }) {
+    async send({ to, subject, html, text, attachments }) {
       const info = await transport.sendMail({
         from: cfg.from,
         to,
         subject,
         html,
         text,
+        attachments,
       });
       return { messageId: String(info.messageId ?? '') };
     },
