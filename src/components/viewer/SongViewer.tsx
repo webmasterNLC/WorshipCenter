@@ -46,8 +46,6 @@ interface SongViewerProps {
   /** Called whenever the user transposes. Used by the performance viewer to
    *  broadcast the lead's adjustments back to the DB. */
   onSemitonesChange?: (semitones: number) => void;
-  /** Performance view uses the Key Dial; the song page keeps compact +/-. */
-  dial?: boolean;
 }
 
 function readStoredFontStep(): number {
@@ -60,7 +58,7 @@ function readStoredFontStep(): number {
   return 1;
 }
 
-export function SongViewer({ song, initialSemitones = 0, navigationSlot, editHref, onSemitonesChange, dial = false }: SongViewerProps) {
+export function SongViewer({ song, initialSemitones = 0, navigationSlot, editHref, onSemitonesChange }: SongViewerProps) {
   const [semitones, setSemitones] = useState(initialSemitones);
   // Single path for every transpose control (+/- buttons and the Key Dial),
   // so the broadcast callback fires no matter how the key was changed.
@@ -113,7 +111,17 @@ export function SongViewer({ song, initialSemitones = 0, navigationSlot, editHre
   const fontSize = FONT_STEPS[fontStep] ?? 20;
 
   return (
-    <article className="max-w-3xl mx-auto pb-24">
+    // The chosen size sits on the whole article, and the width cap is
+    // expressed in em against it. A chord chart needs width in proportion to
+    // its text: with a fixed 48rem cap, every step up in font size meant more
+    // mid-line wrapping and, on a big display, a narrow column with the screen
+    // unused either side. In em the cap tracks the text — 16px → 768px as
+    // before, 40px → 1920px — so lines break in the same places at every size.
+    // Header, language tabs and notes pin their own sizes, so they stay put.
+    <article
+      className="mx-auto pb-24"
+      style={{ fontSize: `${fontSize}px`, maxWidth: '48em' }}
+    >
       {navigationSlot}
 
       {/* Sticky header */}
@@ -132,32 +140,16 @@ export function SongViewer({ song, initialSemitones = 0, navigationSlot, editHre
           </div>
         </div>
 
-        {/* Transpose — Key Dial on the performance view, compact +/- elsewhere */}
-        {dial ? (
-          <KeyDial
-            originalKey={song.original_key}
-            semitones={semitones}
-            accidental={accidental}
-            currentKey={currentKey}
-            onSet={applyTranspose}
-          />
-        ) : (
-          <div className="flex items-center gap-1">
-            <button
-              aria-label="Transpose down"
-              className="size-8 rounded-full border border-(--color-border) flex items-center justify-center text-sm font-bold hover:bg-(--color-muted)"
-              onClick={(e) => { e.stopPropagation(); applyTranspose(semitones - 1); }}
-            >−</button>
-            <span className="text-xs font-mono w-8 text-center">
-              {semitones > 0 ? `+${semitones}` : semitones}
-            </span>
-            <button
-              aria-label="Transpose up"
-              className="size-8 rounded-full border border-(--color-border) flex items-center justify-center text-sm font-bold hover:bg-(--color-muted)"
-              onClick={(e) => { e.stopPropagation(); applyTranspose(semitones + 1); }}
-            >+</button>
-          </div>
-        )}
+        {/* Transpose — the Key Dial, everywhere. The song page used to carry a
+            separate +/- pair, which meant the same job had two different
+            controls depending on how you got to the song. */}
+        <KeyDial
+          originalKey={song.original_key}
+          semitones={semitones}
+          accidental={accidental}
+          currentKey={currentKey}
+          onSet={applyTranspose}
+        />
 
         {/* Font size */}
         <div className="flex items-center gap-1">
@@ -217,7 +209,7 @@ export function SongViewer({ song, initialSemitones = 0, navigationSlot, editHre
       )}
 
       {/* Song body */}
-      <section className="px-4 pt-6" style={{ fontSize: `${fontSize}px` }}>
+      <section className="px-4 pt-6">
         {blocks.map((block, i) => (
           <ChordLine key={i} block={block} language={effectiveLanguage} />
         ))}

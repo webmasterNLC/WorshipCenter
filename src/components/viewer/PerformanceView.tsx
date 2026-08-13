@@ -80,7 +80,6 @@ export function PerformanceView({
   return (
     <SongViewer
       song={song}
-      dial
       initialSemitones={initialSemitones}
       onSemitonesChange={handleTransposeChange}
       navigationSlot={
