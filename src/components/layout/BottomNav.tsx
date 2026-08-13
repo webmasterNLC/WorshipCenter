@@ -14,7 +14,9 @@ export function BottomNav({ session }: { session: Session }) {
   ];
 
   return (
-    <nav className="border-t border-(--color-border) md:hidden">
+    // pb: same reason as TopBar's pt — the home indicator on iOS and the
+    // gesture bar on Android otherwise sit on top of the tab labels.
+    <nav className="border-t border-(--color-border) pb-[env(safe-area-inset-bottom)] md:hidden">
       <ul className="grid grid-cols-5">
         {items.map(({ href, label, icon: Icon }) => (
           <li key={href}>

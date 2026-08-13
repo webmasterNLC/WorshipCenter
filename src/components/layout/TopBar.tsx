@@ -4,7 +4,10 @@ import { ThemeToggle } from '@/components/theme/ThemeToggle';
 
 export function TopBar({ session }: { session: Session }) {
   return (
-    <header className="flex items-center justify-between gap-3 border-b border-(--color-border) px-4 py-3 md:px-8">
+    // pt: the viewport is viewport-fit=cover, so without the inset the row of
+    // controls sits under the notch / status bar. max() keeps the normal 0.75rem
+    // on devices that report no inset (desktop, browser tabs with a URL bar).
+    <header className="flex items-center justify-between gap-3 border-b border-(--color-border) px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 md:px-8">
       <Link
         href="/home"
         className="md:hidden flex items-center gap-2"
