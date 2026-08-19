@@ -204,8 +204,15 @@ export async function deleteSong(id: string) {
   if (!parsedId.success) throw new ValidationError(parsedId.error.flatten());
 
   const sb = await createSupabaseServerClient();
-  // song_translations are cascade-deleted via FK.
-  const { error } = await sb.from('songs').delete().eq('id', id);
+  // song_translations are cascade-deleted via FK. The returned row is the only
+  // chance to record the title — after this the audit log holds a bare UUID
+  // that resolves to nothing.
+  const { data: deleted, error } = await sb
+    .from('songs')
+    .delete()
+    .eq('id', id)
+    .select('title')
+    .maybeSingle();
   if (error) throw new Error(error.message);
 
   const sbAdmin = createSupabaseAdminClient();
@@ -214,7 +221,7 @@ export async function deleteSong(id: string) {
     p_action: 'song.delete',
     p_target_type: 'song',
     p_target_id: id,
-    p_metadata: {},
+    p_metadata: deleted?.title ? { title: deleted.title } : {},
   });
 
   revalidatePath('/songs');

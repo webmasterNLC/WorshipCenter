@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { recordAuthAttempt } from '@/server/auth/attempts';
 
 async function signInAction(formData: FormData) {
   'use server';
@@ -11,6 +12,8 @@ async function signInAction(formData: FormData) {
 
   const sb = await createSupabaseServerClient();
   const { error } = await sb.auth.signInWithPassword({ email, password });
+  // Before the redirects below — redirect() throws, so nothing after it runs.
+  await recordAuthAttempt(email, !error);
   if (error) {
     console.error('[signin] supabase error:', error.message);
     redirect('/sign-in?error=invalid_credentials');

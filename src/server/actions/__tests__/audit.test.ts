@@ -2,6 +2,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { ForbiddenError } from '@/server/auth/errors';
 import { makeListAuditLog, AUDIT_PAGE_SIZE, type AuditRow } from '../audit';
 
+const noLabels = { fetchLabels: async () => [] };
+
 const adminSession = {
   user: { id: 'admin-uid' },
   profile: { id: 'admin-uid', display_name: 'Admin', role: 'admin' as const, created_at: '' },
@@ -24,6 +26,7 @@ function makeDb(available: number) {
     fetchPage: vi.fn(async (offset: number, limit: number) =>
       rows(Math.max(0, Math.min(limit, available - offset))),
     ),
+    ...noLabels,
   };
 }
 
@@ -74,12 +77,48 @@ describe('listAuditLog', () => {
     ];
     const page = await makeListAuditLog({
       requireAdmin: async () => adminSession,
-      db: { fetchPage: async () => mixed },
+      db: { fetchPage: async () => mixed, ...noLabels },
     })(0);
     expect(page.entries.map((e) => e.actor_name)).toEqual([
       'Object form',
       'Array form',
       'Unknown',
+    ]);
+  });
+
+  it('resolves target ids to names, one lookup per target type', async () => {
+    const [base] = rows(1);
+    const page = await makeListAuditLog({
+      requireAdmin: async () => adminSession,
+      db: {
+        fetchPage: async () => [
+          { ...base!, id: 1, action: 'capability.grant', target_type: 'profile', target_id: 'p1' },
+          { ...base!, id: 2, action: 'profile.role_change', target_type: 'profile', target_id: 'p2' },
+          { ...base!, id: 3, action: 'song.update', target_type: 'song', target_id: 's1' },
+          // deleted since, and an unknown type: both stay unlabelled
+          { ...base!, id: 4, action: 'song.delete', target_type: 'song', target_id: 'gone' },
+          { ...base!, id: 5, action: 'rota.assign', target_type: 'rota', target_id: 'r1' },
+        ],
+        fetchLabels: vi.fn(async (table: string, _column: string, ids: string[]) => {
+          const names: Record<string, string> = {
+            p1: 'Nehemiah',
+            p2: 'Admin NLC',
+            s1: 'Arriba',
+          };
+          expect(table === 'profiles' ? ids.sort() : ids).toEqual(
+            table === 'profiles' ? ['p1', 'p2'] : ['s1', 'gone'],
+          );
+          return ids.flatMap((id) => (names[id] ? [{ id, label: names[id]! }] : []));
+        }),
+      },
+    })(0);
+
+    expect(page.entries.map((e) => e.target_label)).toEqual([
+      'Nehemiah',
+      'Admin NLC',
+      'Arriba',
+      null,
+      null,
     ]);
   });
 });

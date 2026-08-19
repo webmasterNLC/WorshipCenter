@@ -181,7 +181,14 @@ export async function deletePlaylist(id: string) {
   if (!parsedId.success) throw new ValidationError(parsedId.error.flatten());
 
   const sb = await createSupabaseServerClient();
-  const { error } = await sb.from('playlists').delete().eq('id', id);
+  // Keep the date + description in the audit row: once deleted, the target_id
+  // resolves to nothing.
+  const { data: deleted, error } = await sb
+    .from('playlists')
+    .delete()
+    .eq('id', id)
+    .select('scheduled_for, description')
+    .maybeSingle();
   if (error) throw new Error(error.message);
 
   const sbAdmin = createSupabaseAdminClient();
@@ -190,7 +197,9 @@ export async function deletePlaylist(id: string) {
     p_action: 'playlist.delete',
     p_target_type: 'playlist',
     p_target_id: id,
-    p_metadata: {},
+    p_metadata: deleted
+      ? { scheduled_for: deleted.scheduled_for, description: deleted.description }
+      : {},
   });
 
   revalidatePath('/playlists');

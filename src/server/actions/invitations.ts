@@ -133,7 +133,7 @@ export async function revokeInvitation(rawInput: z.input<typeof revokeInvitation
     .delete()
     .eq('id', parsed.data.id)
     .is('accepted_at', null)
-    .select('id')
+    .select('id, email, role')
     .single();
   if (error) throw new Error(error.message);
 
@@ -142,7 +142,8 @@ export async function revokeInvitation(rawInput: z.input<typeof revokeInvitation
     p_action: 'invite.revoke',
     p_target_type: 'invitation',
     p_target_id: parsed.data.id,
-    p_metadata: {},
+    // The invitation row is gone now, so the email only survives here.
+    p_metadata: { email: data?.email, role: data?.role },
   });
 
   revalidatePath('/admin/invites');

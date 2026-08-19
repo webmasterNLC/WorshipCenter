@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { ArrowLeft, ScrollText } from 'lucide-react';
-import { listAuditLog, AUDIT_PAGE_SIZE } from '@/server/actions/audit';
+import { listAuditLog, listSignInAttempts, AUDIT_PAGE_SIZE } from '@/server/actions/audit';
 
 // Read-only by design: no forms, no server actions, no delete. The log is the
 // record of what happened — an admin who could prune it would make it useless.
@@ -26,7 +26,10 @@ function formatMetadata(metadata: Record<string, unknown> | null): string | null
 
 export default async function AdminAuditPage({ searchParams }: AdminAuditPageProps) {
   const { page: pageParam } = await searchParams;
-  const { entries, page, hasMore } = await listAuditLog(Number(pageParam ?? 0));
+  const [{ entries, page, hasMore }, signIns] = await Promise.all([
+    listAuditLog(Number(pageParam ?? 0)),
+    listSignInAttempts(),
+  ]);
 
   return (
     <div className="grid gap-8 max-w-5xl">
@@ -48,6 +51,54 @@ export default async function AdminAuditPage({ searchParams }: AdminAuditPagePro
           are written automatically and can never be edited or deleted.
         </p>
       </header>
+
+      {/* Sign-ins live in auth_attempts, not audit_log — they happen before
+          anyone is authenticated, so there is no actor to attribute them to. */}
+      {signIns.length > 0 && page === 0 && (
+        <section className="grid gap-3">
+          <h2 className="font-display text-xl flex items-baseline gap-2">
+            <span className="section-tick" aria-hidden />
+            Recent sign-ins
+          </h2>
+          <ul className="grid gap-1.5">
+            {signIns.map((s) => (
+              <li
+                key={s.id}
+                className="grid gap-1 rounded-xl border border-(--color-border) px-4 py-2.5 md:grid-cols-[9.5rem_1fr_auto] md:items-baseline md:gap-4"
+              >
+                <time
+                  dateTime={s.created_at}
+                  className="text-xs tabular-nums text-(--color-muted-fg)"
+                >
+                  {new Date(s.created_at).toLocaleString()}
+                </time>
+                <span className="text-sm truncate">{s.email ?? 'unknown'}</span>
+                <span className="flex items-baseline gap-2 text-xs">
+                  {s.ip && (
+                    <span className="tabular-nums text-(--color-muted-fg)">{s.ip}</span>
+                  )}
+                  <span
+                    className={
+                      s.succeeded
+                        ? 'text-(--color-muted-fg)'
+                        : 'font-medium text-(--color-danger)'
+                    }
+                  >
+                    {s.succeeded ? 'signed in' : 'failed'}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {page === 0 && (
+        <h2 className="font-display text-xl flex items-baseline gap-2">
+          <span className="section-tick" aria-hidden />
+          Changes
+        </h2>
+      )}
 
       {entries.length === 0 ? (
         <div className="grid gap-2 justify-items-center rounded-2xl border border-dashed border-(--color-border) px-6 py-12 text-center">
@@ -79,6 +130,11 @@ export default async function AdminAuditPage({ searchParams }: AdminAuditPagePro
                       {domain}
                     </span>
                     <span className="text-(--color-fg)">{verb}</span>
+                    {e.target_label && (
+                      <span className="text-(--color-muted-fg)">
+                        &rarr; <span className="text-(--color-fg)">{e.target_label}</span>
+                      </span>
+                    )}
                   </p>
                   {meta && (
                     <p className="text-xs text-(--color-muted-fg) break-words">{meta}</p>
