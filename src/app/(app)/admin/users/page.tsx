@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Mail, ShieldCheck, UserPlus, X, Settings } from 'lucide-react';
+import { Mail, ScrollText, ShieldCheck, UserPlus, X, Settings } from 'lucide-react';
 import { loadSession } from '@/server/auth/require';
 import {
   adminSetUserRole,
@@ -81,6 +81,13 @@ export default async function AdminMembersPage({ searchParams }: AdminMembersPag
           {members.length} {members.length === 1 ? 'member' : 'members'} ·{' '}
           {pending.length} pending {pending.length === 1 ? 'invitation' : 'invitations'}
         </p>
+        <Link
+          href="/admin/audit"
+          className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-lg border border-(--color-border) px-3 py-2 text-xs text-(--color-muted-fg) hover:border-(--color-accent) hover:text-(--color-accent)"
+        >
+          <ScrollText className="size-3.5" aria-hidden />
+          Activity log
+        </Link>
       </header>
 
       {banner && (
